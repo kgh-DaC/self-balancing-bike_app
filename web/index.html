@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f1318">
+<title>밸런싱 바이크 리모컨</title>
+<style>
+  :root {
+    --bg: #0f1318;
+    --panel: #171d24;
+    --panel2: #1e262f;
+    --line: #2a3440;
+    --text: #e3e9ef;
+    --muted: #8a97a5;
+    --accent: #3fa7ff;
+    --ok: #36c47a;
+    --warn: #f0b429;
+    --danger: #ff5a5a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    font-size: 15px; }
+  body { padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  h1 { font-size: 18px; margin: 0; }
+  h2 { font-size: 14px; margin: 0 0 8px; color: var(--muted); font-weight: 600; letter-spacing: .02em; }
+  button { font: inherit; color: var(--text); background: var(--panel2); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 12px; cursor: pointer; touch-action: manipulation; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: #1b4f7a; border-color: #2a6ea6; }
+  button.danger { background: #6b1f1f; border-color: #a33; }
+  button.on { background: #1f5a3a; border-color: var(--ok); }
+  .wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+    background: var(--panel2); border: 1px solid var(--line); font-size: 13px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.err { background: var(--danger); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .safety { background: #2a2210; border-color: #6b5410; }
+  .safety ul { margin: 6px 0 0; padding-left: 20px; line-height: 1.5; }
+  .safety strong { color: var(--warn); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .note { font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
+  .note.err { color: var(--danger); }
+  .alert { display: none; margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: #3a1414;
+    border: 1px solid #a33; color: #ffd0d0; font-size: 13px; line-height: 1.5; }
+  .alert.show { display: block; }
+  .grid { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr); gap: 12px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .joy-card { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  #joy { width: 100%; max-width: 340px; aspect-ratio: 1 / 1; touch-action: none; user-select: none;
+    -webkit-user-select: none; -webkit-touch-callout: none; border-radius: 50%; display: block; }
+  .vals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; max-width: 340px; }
+  .val { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  .val .k { font-size: 12px; color: var(--muted); }
+  .val .v { font-size: 22px; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .val .dz { font-size: 11px; color: var(--warn); visibility: hidden; }
+  .val .dz.show { visibility: visible; }
+  .ctrl { display: flex; flex-direction: column; gap: 12px; }
+  label.sw { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+  #estop { width: 100%; padding: 16px; font-size: 18px; font-weight: 700; }
+  #estop.active { background: #a31d1d; border-color: #ff7b7b; }
+  .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #3a3320; color: var(--warn); margin-left: 6px; }
+  .log { height: 200px; overflow-y: auto; background: #0b0e12; border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px; font-family: ui-monospace, Consolas, "D2Coding", monospace; font-size: 12px; line-height: 1.45;
+    white-space: pre-wrap; word-break: break-all; }
+  .log .w { color: var(--warn); } .log .e { color: var(--danger); } .log .i { color: var(--accent); } .log .t { color: var(--muted); }
+  .mono { font-family: ui-monospace, Consolas, "D2Coding", monospace; }
+  .txnow { font-size: 13px; padding: 6px 8px; background: #0b0e12; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
+  kbd { background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>밸런싱 바이크 리모컨</h1>
+    <div class="row">
+      <span class="pill"><span class="dot" id="connDot"></span><span id="connText">연결 안 됨</span></span>
+      <span class="pill" id="calibPill" title="바이크가 보내는 텍스트로 추정"><span class="dot" id="calibDot"></span><span id="calibText">캘리브레이션 상태 미확인</span></span>
+    </div>
+  </header>
+
+  <section class="card safety">
+    <strong>안전 안내</strong>
+    <ul>
+      <li><strong>처음에는 반드시 바퀴를 바닥에서 띄운 상태</strong>로 조향/속도 방향을 시험하세요. 실제 좌우/전후 방향은 실차로 확인해야 합니다(필요 시 아래 반전 토글 사용).</li>
+      <li><strong>웹으로는 캘리브레이션을 할 수 없습니다.</strong> 현재 펌웨어는 원격 모드(readControlParameters)만 활성화되어 있어 튜닝/캘리브레이션 명령(c+/c-)을 받지 않습니다. 캘리브레이션되지 않은 바이크는 구동하지 않습니다.</li>
+      <li>펌웨어에 <strong>통신 두절 안전장치가 없습니다.</strong> 연결이 갑자기 끊기면 바이크는 마지막 명령을 계속 유지할 수 있으니 즉시 기체를 잡거나 전원을 끄세요. 이 앱은 입력 해제/탭 전환/해제/오류 시 중립(0,0)을 보냅니다.</li>
+      <li>바이크는 수직(기울기 0.3도 이내로 세움) 상태이고 캘리브레이션되어 있을 때만 움직입니다.</li>
+      <li><strong>조종 중에는 탭을 숨기지 마세요</strong>(다른 탭/앱 전환, 창 최소화, 화면 끄기 금지). 숨겨진 탭에서는 브라우저가 타이머를 늦춰 중립 전송이 최대 약 1초 늦어질 수 있습니다.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>연결</h2>
+    <div class="row">
+      <button id="btnBle" class="primary">Bluetooth(BLE) 연결</button>
+      <button id="btnSerial" class="primary">시리얼(COM) 연결</button>
+      <button id="btnDisconnect" class="danger" disabled>연결 해제</button>
+    </div>
+    <div class="note" id="supportNote"></div>
+    <div class="note">
+      BLE: HM-10 계열(FFE0/FFE1)과 Nordic UART 서비스를 자동 탐색합니다.
+      클래식 블루투스(HC-05/06): Windows 설정에서 먼저 페어링하면 생기는 COM 포트를 "시리얼(COM) 연결"로 선택하세요(115200bps).
+    </div>
+    <div class="alert" id="linkAlert"></div>
+  </section>
+
+  <div class="grid">
+    <section class="card joy-card">
+      <h2 style="align-self:flex-start">조이스틱 <span class="muted">(X: 조향, Y: 속도 / 위 = 전진 = Y+)</span></h2>
+      <canvas id="joy" aria-label="조이스틱"></canvas>
+      <div class="vals">
+        <div class="val"><div class="k">X 조향 (전송값)</div><div class="v mono" id="valX">0</div><div class="dz" id="dzX">데드존(효과 없음)</div></div>
+        <div class="val"><div class="k">Y 속도 (전송값)</div><div class="v mono" id="valY">0</div><div class="dz" id="dzY">데드존(효과 없음)</div></div>
+      </div>
+      <div class="muted" id="estimate" style="max-width:340px;text-align:center"></div>
+      <div class="muted" style="text-align:center">
+        키보드: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 또는 방향키, 비상 정지 <kbd>Space</kbd>/<kbd>Esc</kbd><br>
+        노란 띠 = 데드존(|값| &le; 10, 펌웨어가 0으로 처리)
+      </div>
+    </section>
+
+    <section class="card ctrl">
+      <button id="estop">비상 정지 (중립 고정)</button>
+
+      <div>
+        <h2>최대 출력 제한: <span id="limitVal" class="mono">50</span>%</h2>
+        <input type="range" id="limit" min="15" max="100" step="5" value="50">
+        <div class="muted">조이스틱/키보드 최대 입력이 이 비율로 줄어듭니다. 처음엔 낮게 두세요. 전송값 |10| 이하는 펌웨어 데드존이라 움직이지 않으므로 최솟값은 15%입니다(낮을수록 조이스틱을 끝까지 밀어야 반응).</div>
+      </div>
+
+      <div>
+        <h2>방향 반전</h2>
+        <label class="sw"><input type="checkbox" id="invX"> 조향(X) 부호 반전</label>
+        <label class="sw" style="margin-top:6px"><input type="checkbox" id="invY"> 속도(Y) 부호 반전</label>
+        <div class="muted" style="margin-top:4px">바퀴를 띄운 상태에서 실제 방향이 반대이면 켜세요.</div>
+      </div>
+
+      <div>
+        <h2>보조 버튼 <span class="tag">현재 펌웨어에서 효과 없음</span></h2>
+        <div class="btns">
+          <button id="btn1">버튼1: OFF (A/B)</button>
+          <button id="btn2">버튼2: OFF (C/D)</button>
+        </div>
+        <div class="muted" style="margin-top:4px">ON 시 A/C, OFF 시 B/D 프레임을 보냅니다. 펌웨어는 상태만 저장하고 사용하지 않습니다.</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>수신 로그 (바이크 → 앱, ASCII)</h2>
+      <div class="log" id="rxLog"></div>
+      <div class="row" style="margin-top:8px"><button id="rxClear">지우기</button>
+        <label class="sw muted"><input type="checkbox" id="rxAuto" checked> 자동 스크롤</label></div>
+    </section>
+    <section class="card">
+      <h2>송신 (앱 → 바이크)</h2>
+      <div class="txnow mono" id="txNow">마지막 프레임: -</div>
+      <div class="log" id="txLog"></div>
+      <div class="row" style="margin-top:8px"><button id="txClear">지우기</button>
+        <label class="sw muted"><input type="checkbox" id="txAll"> 모든 조이스틱 프레임 기록</label>
+        <span class="muted" id="txStat"></span></div>
+    </section>
+  </div>
+</div>
+
+<!-- ===== 순수 프로토콜 함수 (QA 테스트용: 이 script 블록만 추출해 Node vm으로 실행 가능) ===== -->
+<script id="bike-protocol">
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module && module.exports) module.exports = api;
+  if (root) root.__bike = api;
+})(typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this), function () {
+  'use strict';
+  var STX = '\x02', ETX = '\x03';
+  var AXIS_MIN = -100, AXIS_MAX = 100, OFFSET = 200, DEADZONE = 10;
+  var BUTTON_CODES = ['A', 'B', 'C', 'D'];
+
+  // 임의 입력 -> -100~100 정수. 숫자가 아니면 안전하게 0(중립).
+  function clampAxis(v) {
+    v = Number(v);
+    if (!Number.isFinite(v)) return 0;
+    v = Math.round(v);
+    if (v < AXIS_MIN) v = AXIS_MIN;
+    if (v > AXIS_MAX) v = AXIS_MAX;
+    return v === 0 ? 0 : v; // -0 제거
+  }
+  function encodeAxis(v) {
+    return String(clampAxis(v) + OFFSET).padStart(3, '0'); // 항상 "100"~"300"
+  }
+  // 조이스틱 프레임: STX + XXX + YYY + ETX (8바이트 문자열)
+  function encodeJoystick(x, y) {
+    return STX + encodeAxis(x) + encodeAxis(y) + ETX;
+  }
+  // 버튼 프레임: STX + 'A'|'B'|'C'|'D' + ETX (3바이트 문자열)
+  function encodeButton(ch) {
+    var c = String(ch == null ? '' : ch).toUpperCase();
+    if (c.length !== 1 || BUTTON_CODES.indexOf(c) < 0) {
+      throw new RangeError('encodeButton: A, B, C, D 중 하나여야 합니다: ' + ch);
+    }
+    return STX + c + ETX;
+  }
+  // 프레임 문자열 -> Uint8Array. 127 초과 바이트는 펌웨어가 폐기하므로 거부.
+  function toBytes(frame) {
+    var out = new Uint8Array(frame.length);
+    for (var i = 0; i < frame.length; i++) {
+      var code = frame.charCodeAt(i);
+      if (code > 127) throw new RangeError('toBytes: 127 초과 바이트');
+      out[i] = code;
+    }
+    return out;
+  }
+  function frameToHex(frame) {
+    var s = [];
+    for (var i = 0; i < frame.length; i++) s.push(frame.charCodeAt(i).toString(16).padStart(2, '0').toUpperCase());
+    return s.join(' ');
+  }
+  function frameToText(frame) {
+    return frame.replace(/\x02/g, '<STX>').replace(/\x03/g, '<ETX>');
+  }
+  // 원시 입력(-100~100, 화면 위 = Y+) + 설정 -> 전송값
+  function computeOutput(rawX, rawY, opts) {
+    opts = opts || {};
+    var limit = Number(opts.limit);
+    if (!Number.isFinite(limit)) limit = 50;
+    limit = Math.max(0, Math.min(100, limit));
+    var x = Number(rawX), y = Number(rawY);
+    if (!Number.isFinite(x)) x = 0;
+    if (!Number.isFinite(y)) y = 0;
+    x = Math.max(-100, Math.min(100, x)) * limit / 100;
+    y = Math.max(-100, Math.min(100, y)) * limit / 100;
+    if (opts.invertX) x = -x;
+    if (opts.invertY) y = -y;
+    return { x: clampAxis(x), y: clampAxis(y) };
+  }
+  // 펌웨어 계산 재현(참고용): Arduino map()은 long 정수 연산(0 방향 절삭)
+  function arduinoMap(v, inMin, inMax, outMin, outMax) {
+    return Math.trunc((v - inMin) * (outMax - outMin) / (inMax - inMin)) + outMin;
+  }
+  function firmwareEstimate(x, y) {
+    x = clampAxis(x); y = clampAxis(y);
+    var steer = 0, speed = 0;
+    if (Math.abs(x) > DEADZONE) {
+      var s = x > 0 ? (-x * x + 0.1 * x) / 100.0 : (x * x + 0.1 * x) / 100.0;
+      s = Math.trunc(s);
+      steer = -arduinoMap(s, -100, 100, -350, 350);
+    }
+    if (Math.abs(y) > DEADZONE) speed = arduinoMap(y, 100, -100, 80, -80);
+    steer = steer === 0 ? 0 : steer; speed = speed === 0 ? 0 : speed;
+    return { steeringRemote: steer, speedRemote: speed,
+             steeringServoUs: 1500 + steer, speedServoUs: 1500 + speed * 7 };
+  }
+  return Object.freeze({
+    STX: STX, ETX: ETX, OFFSET: OFFSET, DEADZONE: DEADZONE, AXIS_MIN: AXIS_MIN, AXIS_MAX: AXIS_MAX,
+    NEUTRAL_FRAME: encodeJoystick(0, 0),
+    clampAxis: clampAxis, encodeAxis: encodeAxis, encodeJoystick: encodeJoystick, encodeButton: encodeButton,
+    toBytes: toBytes, frameToHex: frameToHex, frameToText: frameToText,
+    computeOutput: computeOutput, firmwareEstimate: firmwareEstimate
+  });
+});
+</script>
+
+<!-- ===== 앱 ===== -->
+<script>
+(function () {
+  'use strict';
+  var B = window.__bike;
+  var NEUTRAL = B.NEUTRAL_FRAME;
+  var TX_PERIOD_MS = 80;     // 주기 전송 간격
+  var MIN_GAP_MS = 35;       // 프레임 간 최소 간격(펌웨어 파서 보호, >30ms)
+  var WRITE_TIMEOUT_MS = 1500;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  function withTimeout(p, ms) {
+    return new Promise(function (resolve, reject) {
+      var t = setTimeout(function () { reject(new Error('쓰기 시간 초과')); }, ms);
+      Promise.resolve(p).then(function (v) { clearTimeout(t); resolve(v); },
+                              function (e) { clearTimeout(t); reject(e); });
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // 로그
+  // ---------------------------------------------------------------
+  function ts() {
+    var d = new Date();
+    return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  }
+  function appendLog(el, text, cls, autoScroll) {
+    var line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = '[' + ts() + '] ' + text;
+    el.appendChild(line);
+    while (el.childNodes.length > 500) el.removeChild(el.firstChild);
+    if (autoScroll !== false) el.scrollTop = el.scrollHeight;
+  }
+  function rxLog(text, cls) { appendLog($('rxLog'), text, cls, $('rxAuto').checked); }
+  function txLog(text, cls) { appendLog($('txLog'), text, cls); }
+
+  // ---------------------------------------------------------------
+  // Transport 인터페이스
+  //   name, connected, connect(), disconnect(), write(Uint8Array)
+  //   onData(Uint8Array), onClose(reason, unexpected)
+  // ---------------------------------------------------------------
+  var UUID = {
+    FFE0_SVC: '0000ffe0-0000-1000-8000-00805f9b34fb',
+    FFE1_CHR: '0000ffe1-0000-1000-8000-00805f9b34fb',
+    NUS_SVC: '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+    NUS_WRITE: '6e400002-b5a3-f393-e0a9-e50e24dcca9e', // 앱 -> 장치
+    NUS_NOTIFY: '6e400003-b5a3-f393-e0a9-e50e24dcca9e' // 장치 -> 앱
+  };
+
+  function BleTransport() {
+    this.name = 'BLE';
+    this.connected = false;
+    this.onData = null;
+    this.onClose = null;
+    this._closedFired = false;
+  }
+  BleTransport.prototype._pick = async function (svc, preferWrite, preferNotify) {
+    var chars = await svc.getCharacteristics();
+    var canW = function (c) { return c.properties.write || c.properties.writeWithoutResponse; };
+    var canN = function (c) { return c.properties.notify || c.properties.indicate; };
+    var w = chars.find(function (c) { return c.uuid === preferWrite && canW(c); }) || chars.find(canW);
+    var n = chars.find(function (c) { return c.uuid === preferNotify && canN(c); }) || chars.find(canN);
+    return w ? { write: w, notify: n || null } : null;
+  };
+  BleTransport.prototype.connect = async function () {
+    var self = this;
+    this.device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true, // HM-10 류는 서비스 UUID를 광고하지 않는 경우가 많음
+      optionalServices: [UUID.FFE0_SVC, UUID.NUS_SVC]
+    });
+    this._onGattDisc = function () { self._closed('BLE 연결이 끊어졌습니다', true); };
+    this.device.addEventListener('gattserverdisconnected', this._onGattDisc);
+    try {
+      this.server = await this.device.gatt.connect();
+      var found = null, kind = '';
+      try {
+        var s1 = await this.server.getPrimaryService(UUID.FFE0_SVC);
+        found = await this._pick(s1, UUID.FFE1_CHR, UUID.FFE1_CHR); kind = 'FFE0/FFE1';
+      } catch (e) { /* 다음 후보 */ }
+      if (!found) {
+        try {
+          var s2 = await this.server.getPrimaryService(UUID.NUS_SVC);
+          found = await this._pick(s2, UUID.NUS_WRITE, UUID.NUS_NOTIFY); kind = 'Nordic UART';
+        } catch (e) { /* 없음 */ }
+      }
+      if (!found) throw new Error('지원하는 UART 서비스(FFE0 또는 Nordic UART)를 찾지 못했습니다.');
+      this.wChar = found.write;
+      this.useNoResp = !!(this.wChar.properties.writeWithoutResponse && this.wChar.writeValueWithoutResponse);
+      if (found.notify) {
+        this.nChar = found.notify;
+        this._onNotify = function (ev) {
+          var dv = ev.target.value;
+          if (self.onData) self.onData(new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength));
+        };
+        this.nChar.addEventListener('characteristicvaluechanged', this._onNotify);
+        try { await this.nChar.startNotifications(); }
+        catch (e) { rxLog('수신 알림 시작 실패(송신은 가능): ' + e.message, 'w'); }
+      } else {
+        rxLog('수신(notify) 특성이 없어 수신 로그를 표시할 수 없습니다.', 'w');
+      }
+      // 연결 도중 gattserverdisconnected가 이미 왔으면 연결 성공으로 처리하지 않음
+      if (this._closedFired) throw new Error('연결 중 끊어졌습니다.');
+    } catch (e) {
+      // 실패 공통 정리: 리스너 제거 + GATT 해제 (실패한 transport는 UI에 영향 없음)
+      this._userClosing = true;
+      this.connected = false;
+      this._cleanupListeners();
+      try { if (this.device.gatt.connected) this.device.gatt.disconnect(); } catch (_) {}
+      throw e;
+    }
+    this.name = 'BLE ' + kind + (this.device.name ? ' (' + this.device.name + ')' : '');
+    this.connected = true;
+  };
+  BleTransport.prototype._cleanupListeners = function () {
+    try { if (this.device && this._onGattDisc) this.device.removeEventListener('gattserverdisconnected', this._onGattDisc); } catch (e) {}
+    try { if (this.nChar && this._onNotify) this.nChar.removeEventListener('characteristicvaluechanged', this._onNotify); } catch (e) {}
+  };
+  BleTransport.prototype.write = async function (bytes) {
+    if (!this.connected) throw new Error('연결 안 됨');
+    if (this.useNoResp) {
+      try { return await this.wChar.writeValueWithoutResponse(bytes); }
+      catch (e) { if (!this.connected) throw e; this.useNoResp = false; }
+    }
+    if (this.wChar.writeValueWithResponse) return this.wChar.writeValueWithResponse(bytes);
+    return this.wChar.writeValue(bytes);
+  };
+  BleTransport.prototype.disconnect = async function () {
+    this._userClosing = true;
+    this.connected = false;
+    try { if (this.nChar) { this.nChar.removeEventListener('characteristicvaluechanged', this._onNotify); await this.nChar.stopNotifications(); } } catch (e) {}
+    try { if (this.device && this.device.gatt.connected) this.device.gatt.disconnect(); } catch (e) {}
+    this._closed('사용자가 연결을 해제했습니다', false);
+  };
+  BleTransport.prototype._closed = function (reason, unexpected) {
+    if (this._closedFired) return;
+    this._closedFired = true;
+    this.connected = false;
+    this._cleanupListeners(); // gattserverdisconnected + characteristicvaluechanged 모두 제거
+    if (this.onClose) this.onClose(reason, unexpected && !this._userClosing);
+  };
+
+  function SerialTransport() {
+    this.name = '시리얼';
+    this.connected = false;
+    this.onData = null;
+    this.onClose = null;
+    this._closedFired = false;
+    this._closing = false;
+  }
+  SerialTransport.prototype.connect = async function () {
+    var self = this;
+    this.port = await navigator.serial.requestPort();
+    var opened = false;
+    try {
+      await this.port.open({ baudRate: 115200, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' });
+      opened = true;
+      this.writer = this.port.writable.getWriter();
+      this._onDisc = function () { self._closed('시리얼 포트가 분리되었습니다', true); };
+      this.port.addEventListener('disconnect', this._onDisc);
+      var info = {};
+      try { info = this.port.getInfo() || {}; } catch (e) {}
+      this.name = '시리얼 115200' + (info.usbVendorId ? ' (USB ' + info.usbVendorId.toString(16) + ':' + (info.usbProductId || 0).toString(16) + ')' : '');
+      if (this._closedFired) throw new Error('연결 중 끊어졌습니다.');
+    } catch (e) {
+      // open 이후 단계에서 실패하면 포트를 닫아 재연결 시 "already open"을 막음
+      this._closing = true;
+      this.connected = false;
+      try { if (this._onDisc) this.port.removeEventListener('disconnect', this._onDisc); } catch (_) {}
+      try { if (this.writer) { this.writer.releaseLock(); this.writer = null; } } catch (_) {}
+      if (opened) { try { await this.port.close(); } catch (_) {} }
+      throw e;
+    }
+    this.connected = true;
+    this._readDone = this._readLoop();
+  };
+  SerialTransport.prototype._readLoop = async function () {
+    while (this.port && this.port.readable && !this._closing) {
+      this.reader = this.port.readable.getReader();
+      try {
+        for (;;) {
+          var r = await this.reader.read();
+          if (r.done) break;
+          if (r.value && this.onData) this.onData(r.value);
+        }
+      } catch (e) {
+        if (!this._closing) rxLog('시리얼 읽기 오류: ' + e.message, 'e');
+      } finally {
+        try { this.reader.releaseLock(); } catch (e) {}
+        this.reader = null;
+      }
+    }
+    if (!this._closing) this._closed('시리얼 수신이 종료되었습니다', true);
+  };
+  SerialTransport.prototype.write = async function (bytes) {
+    if (!this.connected || !this.writer) throw new Error('연결 안 됨');
+    return this.writer.write(bytes);
+  };
+  SerialTransport.prototype.disconnect = async function () {
+    this._closing = true;
+    this.connected = false;
+    try { if (this.reader) await this.reader.cancel(); } catch (e) {}
+    try { await this._readDone; } catch (e) {}
+    try { if (this.writer) { this.writer.releaseLock(); this.writer = null; } } catch (e) {}
+    try { if (this.port) await this.port.close(); } catch (e) {}
+    this._closed('사용자가 연결을 해제했습니다', false);
+  };
+  SerialTransport.prototype._closed = function (reason, unexpected) {
+    if (this._closedFired) return;
+    this._closedFired = true;
+    var wasClosing = this._closing;
+    this._closing = true;
+    this.connected = false;
+    try { if (this.port) this.port.removeEventListener('disconnect', this._onDisc); } catch (e) {}
+    if (unexpected) { // 정리 시도
+      var self = this;
+      (async function () {
+        try { if (self.reader) await self.reader.cancel(); } catch (e) {}
+        try { if (self.writer) self.writer.releaseLock(); } catch (e) {}
+        try { if (self.port) await self.port.close(); } catch (e) {}
+      })();
+    }
+    if (this.onClose) this.onClose(reason, unexpected && !wasClosing);
+  };
+
+  // ---------------------------------------------------------------
+  // 송신기: 한 프레임 = 한 번의 write, 프레임 간 최소 간격 보장, 직렬화
+  // ---------------------------------------------------------------
+  var transport = null;
+  var txCount = 0, txErrors = 0, lastSentFrame = '';
+  var sender = {
+    pendingJoy: null, pendingBtn: [], busy: false, lastWrite: 0,
+    forceNeutral: false, // 쓰기 오류 복구 중: 중립이 성공적으로 전송될 때까지 조이스틱 프레임을 중립으로 대체
+    linkDead: false,     // 쓰기 오류 반복으로 링크 사망 판정: 더 이상 큐에 넣지 않음
+    reset: function () { this.pendingJoy = null; this.pendingBtn = []; this.forceNeutral = false; this.linkDead = false; },
+    queueJoy: function (frame) {
+      if (this.linkDead) return;
+      this.pendingJoy = this.forceNeutral ? NEUTRAL : frame;
+      this.pump();
+    },
+    queueBtn: function (frame) { if (this.linkDead) return; this.pendingBtn.push(frame); this.pump(); },
+    pump: async function () {
+      if (this.busy) return;
+      this.busy = true;
+      try {
+        while (transport && transport.connected && !this.linkDead && (this.pendingJoy || this.pendingBtn.length)) {
+          var wait = MIN_GAP_MS - (performance.now() - this.lastWrite);
+          if (wait > 0) await sleep(wait);
+          if (!transport || !transport.connected || this.linkDead) break;
+          if (this.forceNeutral && this.pendingJoy) this.pendingJoy = NEUTRAL;
+          var frame;
+          // 중립 프레임은 버튼보다 우선
+          if (this.pendingJoy && (this.pendingJoy === NEUTRAL || !this.pendingBtn.length)) {
+            frame = this.pendingJoy; this.pendingJoy = null;
+          } else {
+            frame = this.pendingBtn.shift();
+          }
+          var t = transport;
+          try {
+            await withTimeout(t.write(B.toBytes(frame)), WRITE_TIMEOUT_MS);
+            this.lastWrite = performance.now();
+            txErrors = 0;
+            if (frame === NEUTRAL) this.forceNeutral = false; // 중립 재전송 성공 -> 복구 완료
+            onFrameSent(frame);
+          } catch (e) {
+            this.lastWrite = performance.now();
+            handleWriteError(e, t);
+          }
+        }
+      } finally {
+        this.busy = false;
+      }
+    },
+    waitIdle: async function (timeoutMs) {
+      var end = performance.now() + timeoutMs;
+      while (!this.linkDead && (this.busy || this.pendingJoy || this.pendingBtn.length) && performance.now() < end) await sleep(5);
+    }
+  };
+
+  function onFrameSent(frame) {
+    txCount++;
+    var changed = frame !== lastSentFrame;
+    lastSentFrame = frame;
+    $('txNow').textContent = '마지막 프레임: ' + B.frameToText(frame) + '   [' + B.frameToHex(frame) + ']';
+    if (frame.length === 3) txLog('버튼 ' + B.frameToText(frame), 'i');
+    else if ($('txAll').checked || (changed && frame !== NEUTRAL)) txLog(B.frameToText(frame), 't');
+  }
+
+  function handleWriteError(e, t) {
+    txErrors++;
+    txLog('송신 오류: ' + (e && e.message ? e.message : e), 'e');
+    if (t !== transport) return;
+    if (txErrors >= 3) {
+      // 링크 사망: 중립 재삽입/재시도를 멈추고 바로 해제(오류 로그 누적 방지)
+      sender.linkDead = true;
+      sender.forceNeutral = false;
+      sender.pendingJoy = null; sender.pendingBtn = [];
+      showAlert('송신 오류가 반복되어 연결을 종료합니다. 바이크가 마지막 명령을 유지할 수 있으니 기체를 잡거나 전원을 끄세요.');
+      disconnect('송신 오류 반복');
+      return;
+    }
+    // 오류 시 중립 재시도: 중립이 실제로 전송될 때까지 주기 tick이 덮어쓰지 못하게 고정
+    if (t.connected) { sender.forceNeutral = true; sender.pendingJoy = NEUTRAL; }
+  }
+
+  function sendNeutralNow(reason) {
+    if (!transport || !transport.connected) return;
+    sender.queueJoy(NEUTRAL);
+    if (reason) txLog('중립 200200 전송 (' + reason + ')', 'w');
+  }
+
+  // ---------------------------------------------------------------
+  // 수신 처리(ASCII 텍스트 줄 단위)
+  // ---------------------------------------------------------------
+  var decoder = null, rxBuf = '';
+  function visualize(s) {
+    return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, function (c) {
+      return '<' + c.charCodeAt(0).toString(16).padStart(2, '0').toUpperCase() + '>';
+    });
+  }
+  function onRx(bytes) {
+    if (!decoder) decoder = new TextDecoder('utf-8');
+    rxBuf += decoder.decode(bytes, { stream: true });
+    var idx;
+    while ((idx = rxBuf.search(/\r?\n|\r/)) >= 0) {
+      var m = rxBuf.match(/\r?\n|\r/);
+      var line = rxBuf.slice(0, idx);
+      rxBuf = rxBuf.slice(idx + m[0].length);
+      if (line.length) handleRxLine(line);
+    }
+    if (rxBuf.length > 256) { handleRxLine(rxBuf); rxBuf = ''; }
+  }
+  function handleRxLine(line) {
+    var cls = '';
+    if (/first you need to calibrate|Has no calibration data/i.test(line)) {
+      cls = 'w'; setCalib('need');
+    } else if (/Read calibration data/i.test(line)) {
+      setCalib('ok');
+    }
+    rxLog(visualize(line), cls);
+  }
+  function setCalib(state) {
+    if (state === 'need') { $('calibDot').className = 'dot err'; $('calibText').textContent = '캘리브레이션 필요(구동 안 됨)'; }
+    else if (state === 'ok') { $('calibDot').className = 'dot ok'; $('calibText').textContent = '캘리브레이션 데이터 있음'; }
+    else { $('calibDot').className = 'dot'; $('calibText').textContent = '캘리브레이션 상태 미확인'; }
+  }
+
+  // ---------------------------------------------------------------
+  // 연결 / 해제
+  // ---------------------------------------------------------------
+  var connecting = false;
+  function setConnUI(state, text) {
+    $('connDot').className = 'dot' + (state === 'ok' ? ' ok' : state === 'busy' ? ' warn' : state === 'err' ? ' err' : '');
+    $('connText').textContent = text;
+    var connected = state === 'ok';
+    $('btnBle').disabled = connected || connecting || !support.ble;
+    $('btnSerial').disabled = connected || connecting || !support.serial;
+    $('btnDisconnect').disabled = !connected;
+  }
+  function showAlert(msg) { var a = $('linkAlert'); a.textContent = msg; a.classList.add('show'); }
+  function hideAlert() { $('linkAlert').classList.remove('show'); }
+
+  async function connect(kind) {
+    if (transport || connecting) return;
+    hideAlert();
+    connecting = true;
+    setConnUI('busy', '연결 중...');
+    var t = kind === 'ble' ? new BleTransport() : new SerialTransport();
+    t.onData = onRx;
+    t.onClose = function (reason, unexpected) { onTransportClosed(t, reason, unexpected); };
+    try {
+      await t.connect();
+    } catch (e) {
+      connecting = false;
+      var msg = e && e.name === 'NotFoundError' ? '장치 선택이 취소되었습니다.' : ('연결 실패: ' + (e && e.message ? e.message : e));
+      setConnUI('err', '연결 실패');
+      rxLog(msg, 'e');
+      try { if (t.connected) await t.disconnect(); } catch (_) {}
+      return;
+    }
+    connecting = false;
+    transport = t;
+    decoder = null; rxBuf = '';
+    txErrors = 0; lastSentFrame = '';
+    sender.reset();
+    setConnUI('ok', '연결됨: ' + t.name);
+    rxLog('연결됨: ' + t.name, 'i');
+    // 안전: 연결 직후 입력 초기화 + 중립 전송
+    releaseAllInputs(false);
+    sendNeutralNow('연결 직후');
+    startTxLoop();
+  }
+
+  var disconnecting = false;
+  async function disconnect(reason) {
+    var t = transport;
+    if (!t || disconnecting) return;
+    disconnecting = true;
+    $('btnDisconnect').disabled = true;
+    stopTxLoop(); // 해제 중에는 조이스틱 값이 다시 큐에 들어가지 않도록
+    releaseAllInputs(false);
+    // 안전: 해제 전 중립을 확실히 전송(두 번, 간격 유지)
+    // 링크가 이미 죽은 경우(sender.linkDead)에는 중립 재전송 대기를 건너뜀
+    if (t.connected && !sender.linkDead) {
+      sendNeutralNow(reason || '연결 해제');
+      await sender.waitIdle(400);
+      if (t.connected && !sender.linkDead) {
+        await sleep(TX_PERIOD_MS);
+        sender.queueJoy(NEUTRAL);
+        await sender.waitIdle(400);
+      }
+    } else if (sender.linkDead) {
+      txLog('링크 응답 없음: 중립 재전송을 생략하고 연결을 닫습니다', 'w');
+    }
+    stopTxLoop();
+    transport = null;
+    sender.reset();
+    try { await t.disconnect(); } catch (e) {}
+    disconnecting = false;
+    setConnUI('idle', '연결 안 됨');
+  }
+
+  function onTransportClosed(t, reason, unexpected) {
+    // 활성 transport가 아니면(연결 중 실패, 사용자 해제 진행 중, 이전 transport) UI를 건드리지 않음.
+    // 사용자 해제 경로는 disconnect()가 직접 UI를 정리함.
+    if (t !== transport) return;
+    stopTxLoop();
+    releaseAllInputs(false);
+    sender.reset();
+    var wasActive = transport === t;
+    transport = null;
+    if (unexpected && wasActive) {
+      setConnUI('err', '연결 끊김');
+      rxLog(reason, 'e');
+      showAlert('연결이 예기치 않게 끊어졌습니다(' + reason + '). 펌웨어에 통신 두절 안전장치가 없어 바이크가 마지막 명령을 유지할 수 있습니다. 즉시 기체를 잡거나 전원을 끄세요.');
+      try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+    } else {
+      setConnUI('idle', '연결 안 됨');
+      if (wasActive) rxLog(reason, 'i');
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // 입력 상태
+  // ---------------------------------------------------------------
+  var settings = { limit: 50, invertX: false, invertY: false };
+  var estop = false;
+  var joy = { active: false, pointerId: null, rawX: 0, rawY: 0 };
+  var keys = { up: false, down: false, left: false, right: false };
+  var kb = { x: 0, y: 0 };
+  var KB_RAMP = 20; // 키보드 입력 증가 속도(틱당), 해제는 즉시 0
+  var out = { x: 0, y: 0 };
+
+  function anyKey() { return keys.up || keys.down || keys.left || keys.right; }
+
+  function releaseAllInputs(sendNeutral, reason) {
+    var had = joy.active || anyKey() || kb.x !== 0 || kb.y !== 0;
+    if (joy.active && joy.pointerId != null) {
+      try { canvas.releasePointerCapture(joy.pointerId); } catch (e) {}
+    }
+    joy.active = false; joy.pointerId = null; joy.rawX = 0; joy.rawY = 0;
+    keys.up = keys.down = keys.left = keys.right = false;
+    kb.x = 0; kb.y = 0;
+    out = { x: 0, y: 0 };
+    renderValues();
+    if (sendNeutral && (had || reason)) sendNeutralNow(reason || '입력 해제');
+  }
+
+  function rampAxis(cur, target) {
+    if (target === 0) return 0;
+    if (cur !== 0 && Math.sign(cur) !== Math.sign(target)) cur = 0;
+    if (Math.abs(target - cur) <= KB_RAMP) return target;
+    return cur + KB_RAMP * Math.sign(target - cur);
+  }
+  function updateKeyboard() {
+    var tx = (keys.right ? 100 : 0) - (keys.left ? 100 : 0);
+    var ty = (keys.up ? 100 : 0) - (keys.down ? 100 : 0);
+    kb.x = rampAxis(kb.x, tx);
+    kb.y = rampAxis(kb.y, ty);
+  }
+
+  function computeCurrent() {
+    if (estop) return { x: 0, y: 0 };
+    var rx = 0, ry = 0;
+    if (joy.active) { rx = joy.rawX; ry = joy.rawY; }
+    else { rx = kb.x; ry = kb.y; }
+    return B.computeOutput(rx, ry, settings);
+  }
+
+  // ---------------------------------------------------------------
+  // 주기 전송 루프
+  // ---------------------------------------------------------------
+  var txTimer = null, txWindowStart = 0, txWindowCount = 0;
+  function tick() {
+    updateKeyboard();
+    out = computeCurrent();
+    renderValues();
+    if (transport && transport.connected && !disconnecting) {
+      sender.queueJoy(B.encodeJoystick(out.x, out.y));
+    }
+    var now = performance.now();
+    if (now - txWindowStart >= 1000) {
+      var hz = txCount - txWindowCount;
+      txWindowCount = txCount; txWindowStart = now;
+      $('txStat').textContent = transport ? ('전송 ' + hz + '프레임/초, 누적 ' + txCount) : '';
+    }
+  }
+  function startTxLoop() { if (!txTimer) txTimer = setInterval(tick, TX_PERIOD_MS); }
+  function stopTxLoop() { if (txTimer) { clearInterval(txTimer); txTimer = null; } }
+  // 연결 전에도 UI 미리보기용으로 동작(전송은 연결 시에만)
+  var previewTimer = setInterval(function () { if (!txTimer) tick(); }, TX_PERIOD_MS);
+
+  function renderValues() {
+    $('valX').textContent = out.x;
+    $('valY').textContent = out.y;
+    $('dzX').classList.toggle('show', Math.abs(out.x) <= B.DEADZONE);
+    $('dzY').classList.toggle('show', Math.abs(out.y) <= B.DEADZONE);
+    var est = B.firmwareEstimate(out.x, out.y);
+    $('estimate').textContent = '펌웨어 추정(참고): steering_remote ' + est.steeringRemote + ' (서보 ' + est.steeringServoUs +
+      'us), speed_remote ' + est.speedRemote + ' (서보2 ' + est.speedServoUs + 'us)';
+  }
+
+  // ---------------------------------------------------------------
+  // 조이스틱 (Pointer Events: 터치/마우스/펜)
+  // ---------------------------------------------------------------
+  var canvas = $('joy');
+  var ctx = canvas.getContext('2d');
+  var KNOB_FRAC = 0.13, MARGIN_FRAC = 0.03;
+
+  function resizeCanvas() {
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth || 300;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(w * dpr);
+  }
+  function geometry(sizePx) {
+    var knob = sizePx * KNOB_FRAC;
+    var R = sizePx / 2 - knob - sizePx * MARGIN_FRAC;
+    return { c: sizePx / 2, knob: knob, R: R };
+  }
+  function draw() {
+    var S = canvas.width;
+    var g = geometry(S);
+    ctx.clearRect(0, 0, S, S);
+    // 바탕
+    ctx.fillStyle = '#121820';
+    ctx.beginPath(); ctx.arc(g.c, g.c, S / 2 - 1, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(g.c, g.c, g.R, 0, Math.PI * 2); ctx.clip();
+    // 데드존 띠: 전송값 |v| <= 10 이 되는 원시 입력 범위 (출력 제한 반영)
+    var lim = Math.max(1, settings.limit);
+    var frac = Math.min(1, (B.DEADZONE + 0.5) / lim); // 원시 입력 비율
+    var half = frac * g.R;
+    ctx.fillStyle = 'rgba(240,180,41,0.16)';
+    ctx.fillRect(g.c - half, 0, half * 2, S); // X 데드존(세로 띠)
+    ctx.fillRect(0, g.c - half, S, half * 2); // Y 데드존(가로 띠)
+    ctx.restore();
+    // 테두리/축
+    ctx.strokeStyle = '#2f3b48'; ctx.lineWidth = Math.max(1, S / 200);
+    ctx.beginPath(); ctx.arc(g.c, g.c, g.R, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(g.c, g.c - g.R); ctx.lineTo(g.c, g.c + g.R);
+    ctx.moveTo(g.c - g.R, g.c); ctx.lineTo(g.c + g.R, g.c); ctx.stroke();
+    // 라벨
+    ctx.fillStyle = '#8a97a5';
+    ctx.font = Math.round(S * 0.045) + 'px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(settings.invertY ? '전진 (Y-)' : '전진 (Y+)', g.c, g.c - g.R - g.knob * 0.55);
+    ctx.fillText(settings.invertY ? '후진 (Y+)' : '후진 (Y-)', g.c, g.c + g.R + g.knob * 0.55);
+    ctx.save(); ctx.translate(g.c - g.R - g.knob * 0.55, g.c); ctx.rotate(-Math.PI / 2); ctx.fillText('좌', 0, 0); ctx.restore();
+    ctx.save(); ctx.translate(g.c + g.R + g.knob * 0.55, g.c); ctx.rotate(Math.PI / 2); ctx.fillText('우', 0, 0); ctx.restore();
+    // 노브: 원시 입력 위치
+    var rx = 0, ry = 0;
+    if (joy.active) { rx = joy.rawX; ry = joy.rawY; } else { rx = kb.x; ry = kb.y; }
+    if (estop) { rx = 0; ry = 0; }
+    var len = Math.hypot(rx, ry);
+    if (len > 100) { rx = rx / len * 100; ry = ry / len * 100; }
+    var kx = g.c + rx / 100 * g.R, ky = g.c - ry / 100 * g.R;
+    ctx.fillStyle = estop ? '#a31d1d' : (joy.active || anyKey()) ? '#3fa7ff' : '#3a4756';
+    ctx.beginPath(); ctx.arc(kx, ky, g.knob, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.stroke();
+    requestAnimationFrame(draw);
+  }
+
+  function pointerToRaw(e) {
+    var rect = canvas.getBoundingClientRect();
+    var g = geometry(rect.width);
+    var dx = e.clientX - (rect.left + rect.width / 2);
+    var dy = e.clientY - (rect.top + rect.height / 2);
+    var len = Math.hypot(dx, dy);
+    if (len > g.R) { dx = dx / len * g.R; dy = dy / len * g.R; }
+    joy.rawX = dx / g.R * 100;
+    joy.rawY = -dy / g.R * 100; // 화면 위 = Y+
+  }
+  canvas.addEventListener('pointerdown', function (e) {
+    if (joy.active) return;
+    e.preventDefault();
+    joy.active = true; joy.pointerId = e.pointerId;
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    pointerToRaw(e);
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!joy.active || e.pointerId !== joy.pointerId) return;
+    e.preventDefault();
+    pointerToRaw(e);
+  });
+  function endPointer(e) {
+    if (!joy.active || e.pointerId !== joy.pointerId) return;
+    joy.active = false; joy.pointerId = null; joy.rawX = 0; joy.rawY = 0;
+    out = computeCurrent();
+    renderValues();
+    // 안전: 입력 해제 즉시 중립 (키보드가 눌려 있으면 다음 틱에 키보드 값)
+    if (!anyKey()) sendNeutralNow('조이스틱 해제');
+  }
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+  canvas.addEventListener('lostpointercapture', endPointer);
+  canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  // ---------------------------------------------------------------
+  // 키보드 (e.code 사용: 한글 입력 상태에서도 동작)
+  // ---------------------------------------------------------------
+  var KEYMAP = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down',
+                 KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' };
+  window.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.code === 'Space' || e.code === 'Escape') {
+      e.preventDefault();
+      if (!e.repeat) setEstop(true);
+      return;
+    }
+    var k = KEYMAP[e.code];
+    if (!k) return;
+    e.preventDefault(); // 슬라이더 등 다른 요소가 방향키를 먹지 않게
+    keys[k] = true;
+  }, true);
+  window.addEventListener('keyup', function (e) {
+    var k = KEYMAP[e.code];
+    if (!k) return;
+    e.preventDefault();
+    keys[k] = false;
+    updateKeyboard();
+    if (!anyKey() && !joy.active) {
+      kb.x = 0; kb.y = 0;
+      out = computeCurrent(); renderValues();
+      sendNeutralNow('키 해제');
+    }
+  }, true);
+
+  // ---------------------------------------------------------------
+  // 탭 숨김 / 포커스 상실 / 페이지 이탈: 즉시 중립
+  // ---------------------------------------------------------------
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') releaseAllInputs(true, '탭 숨김');
+  });
+  window.addEventListener('blur', function () { releaseAllInputs(true, '창 포커스 상실'); });
+  window.addEventListener('pagehide', function () {
+    releaseAllInputs(false);
+    if (transport && transport.connected) {
+      sender.pendingJoy = NEUTRAL;
+      try { Promise.resolve(transport.write(B.toBytes(NEUTRAL))).catch(function () {}); } catch (e) {} // 최선 노력
+    }
+  });
+  window.addEventListener('beforeunload', function (e) {
+    if (transport && transport.connected) {
+      sender.pendingJoy = NEUTRAL;
+      try { Promise.resolve(transport.write(B.toBytes(NEUTRAL))).catch(function () {}); } catch (_) {}
+      e.preventDefault(); e.returnValue = '';
+    }
+  });
+
+  // ---------------------------------------------------------------
+  // 비상 정지 / 설정 / 버튼
+  // ---------------------------------------------------------------
+  function setEstop(on) {
+    estop = on;
+    var b = $('estop');
+    b.classList.toggle('active', on);
+    b.textContent = on ? '비상 정지 중 - 눌러서 해제' : '비상 정지 (중립 고정)';
+    if (on) releaseAllInputs(true, '비상 정지');
+    else txLog('비상 정지 해제', 'i');
+  }
+  $('estop').addEventListener('click', function () { setEstop(!estop); });
+
+  $('limit').addEventListener('input', function () {
+    settings.limit = Number(this.value);
+    $('limitVal').textContent = settings.limit;
+  });
+  $('invX').addEventListener('change', function () { settings.invertX = this.checked; releaseAllInputs(true, '방향 설정 변경'); });
+  $('invY').addEventListener('change', function () { settings.invertY = this.checked; releaseAllInputs(true, '방향 설정 변경'); });
+
+  var btnState = { 1: false, 2: false };
+  function toggleBtn(n) {
+    if (!transport || !transport.connected) { txLog('연결되지 않아 버튼을 보낼 수 없습니다', 'w'); return; }
+    btnState[n] = !btnState[n];
+    var ch = n === 1 ? (btnState[n] ? 'A' : 'B') : (btnState[n] ? 'C' : 'D');
+    sender.queueBtn(B.encodeButton(ch));
+    var el = $('btn' + n);
+    el.classList.toggle('on', btnState[n]);
+    el.textContent = '버튼' + n + ': ' + (btnState[n] ? 'ON' : 'OFF') + (n === 1 ? ' (A/B)' : ' (C/D)');
+  }
+  $('btn1').addEventListener('click', function () { toggleBtn(1); });
+  $('btn2').addEventListener('click', function () { toggleBtn(2); });
+
+  $('btnBle').addEventListener('click', function () { connect('ble'); });
+  $('btnSerial').addEventListener('click', function () { connect('serial'); });
+  $('btnDisconnect').addEventListener('click', function () { disconnect('연결 해제'); });
+  $('rxClear').addEventListener('click', function () { $('rxLog').textContent = ''; setCalib(null); });
+  $('txClear').addEventListener('click', function () { $('txLog').textContent = ''; });
+
+  // 버튼 클릭 후 포커스가 남아 Space가 버튼을 누르지 않도록
+  document.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('keydown', function (e) { if (e.code === 'Space' || e.code === 'Enter') e.preventDefault(); });
+  });
+
+  // ---------------------------------------------------------------
+  // 지원 여부 확인
+  // ---------------------------------------------------------------
+  var support = {
+    secure: window.isSecureContext,
+    ble: !!(navigator.bluetooth && window.isSecureContext),
+    serial: !!(navigator.serial && window.isSecureContext)
+  };
+  (function () {
+    var msgs = [];
+    if (!support.secure) msgs.push('HTTPS 또는 localhost에서 열어야 Bluetooth/시리얼을 사용할 수 있습니다(현재 보안 컨텍스트 아님).');
+    if (!navigator.bluetooth) msgs.push('이 브라우저는 Web Bluetooth를 지원하지 않습니다(Chrome/Edge 데스크톱, 안드로이드 Chrome 권장. iOS Safari 미지원).');
+    if (!navigator.serial) msgs.push('이 브라우저는 Web Serial을 지원하지 않습니다(Chrome/Edge 데스크톱 필요. 모바일 미지원).');
+    var n = $('supportNote');
+    if (msgs.length) { n.textContent = msgs.join(' '); n.classList.add('err'); }
+    else n.textContent = 'Web Bluetooth와 Web Serial을 모두 사용할 수 있습니다.';
+    if (navigator.bluetooth && navigator.bluetooth.getAvailability) {
+      navigator.bluetooth.getAvailability().then(function (ok) {
+        if (!ok) { n.textContent += ' 블루투스 어댑터를 사용할 수 없습니다(꺼짐 또는 없음).'; n.classList.add('err'); }
+      }).catch(function () {});
+    }
+  })();
+
+  setConnUI('idle', '연결 안 됨');
+  setCalib(null);
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  renderValues();
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

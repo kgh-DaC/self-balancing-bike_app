@@ -1,0 +1,11 @@
+Two functions in the main program:
+Tuning();
+//readControlParameters();
+You can only choose one of the two. Enabling Tuning() is the mode of debugging PID, where c+, c- are the calibration balance angles, p+, p-, i+, i-, s+, s-, a+, a-
+Enabling readControlParameters(), remote control command control function
+
+Currently suitable parameters in the structure:
+float K1 = 24.00; //p
+float K2 = -20.00; //i
+float K3 = -9.00; //s
+float K4 = -0.00; //a
