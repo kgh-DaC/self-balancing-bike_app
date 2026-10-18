@@ -36,6 +36,7 @@
   header { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
     background: var(--panel2); border: 1px solid var(--line); font-size: 13px; }
+  select { font: inherit; padding: 6px 8px; border-radius: 8px; background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
   .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.err { background: var(--danger); }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
@@ -84,6 +85,7 @@
     <div class="row">
       <span class="pill"><span class="dot" id="connDot"></span><span id="connText">연결 안 됨</span></span>
       <span class="pill" id="calibPill" title="바이크가 보내는 텍스트로 추정"><span class="dot" id="calibDot"></span><span id="calibText">캘리브레이션 상태 미확인</span></span>
+      <span class="pill" id="echoPill" title="펌웨어가 조이스틱 프레임을 받으면 'J x y'로 되돌려 보냅니다(값이 바뀔 때만)"><span class="dot" id="echoDot"></span><span id="echoText">수신 확인: 대기</span></span>
     </div>
   </header>
 
@@ -92,7 +94,7 @@
     <ul>
       <li><strong>처음에는 반드시 바퀴를 바닥에서 띄운 상태</strong>로 조향/속도 방향을 시험하세요. 실제 좌우/전후 방향은 실차로 확인해야 합니다(필요 시 아래 반전 토글 사용).</li>
       <li><strong>웹으로는 캘리브레이션을 할 수 없습니다.</strong> 현재 펌웨어는 원격 모드(readControlParameters)만 활성화되어 있어 튜닝/캘리브레이션 명령(c+/c-)을 받지 않습니다. 캘리브레이션되지 않은 바이크는 구동하지 않습니다.</li>
-      <li>펌웨어에 <strong>통신 두절 안전장치가 없습니다.</strong> 연결이 갑자기 끊기면 바이크는 마지막 명령을 계속 유지할 수 있으니 즉시 기체를 잡거나 전원을 끄세요. 이 앱은 입력 해제/탭 전환/해제/오류 시 중립(0,0)을 보냅니다.</li>
+      <li><strong>통신 두절 안전장치:</strong> <code>03.Firmware</code> 펌웨어는 0.5초 동안 정상 프레임이 없으면 조향·속도를 0으로 만듭니다(원본 <code>01.Arduino Code</code> 펌웨어에는 없음 → 끊기면 마지막 명령 유지). 이 앱은 0.08초마다 프레임을 보내고, 입력 해제/탭 전환/해제/오류 시 중립(0,0)을 보냅니다. 그래도 끊기면 즉시 기체를 잡거나 전원을 끄세요.</li>
       <li>바이크는 수직(기울기 0.3도 이내로 세움) 상태이고 캘리브레이션되어 있을 때만 움직입니다.</li>
       <li><strong>조종 중에는 탭을 숨기지 마세요</strong>(다른 탭/앱 전환, 창 최소화, 화면 끄기 금지). 숨겨진 탭에서는 브라우저가 타이머를 늦춰 중립 전송이 최대 약 1초 늦어질 수 있습니다.</li>
     </ul>
@@ -108,8 +110,18 @@
     <div class="note" id="supportNote"></div>
     <div class="note">
       BLE: HM-10 계열(FFE0/FFE1)과 Nordic UART 서비스를 자동 탐색합니다.
-      클래식 블루투스(HC-05/06): Windows 설정에서 먼저 페어링하면 생기는 COM 포트를 "시리얼(COM) 연결"로 선택하세요(115200bps).
+      클래식 블루투스(HC-05/06): Windows 설정에서 먼저 페어링하면 생기는 COM 포트를 "시리얼(COM) 연결"로 선택하세요.
     </div>
+    <div class="row" style="margin-top:8px">
+      <label class="muted" for="baud">시리얼 보드레이트(펌웨어 <code>Serial.begin()</code>과 같게):</label>
+      <select id="baud">
+        <option value="9600" selected>9600 (03.Firmware / HC-05 기본)</option>
+        <option value="38400">38400</option>
+        <option value="57600">57600</option>
+        <option value="115200">115200 (01 원본 펌웨어)</option>
+      </select>
+    </div>
+    <div class="note">BLE 연결은 보드레이트를 고르지 않습니다. 모듈(HM-10 등) 자체의 UART 속도가 펌웨어와 같아야 합니다(HM-10 기본 9600).</div>
     <div class="alert" id="linkAlert"></div>
   </section>
 
@@ -425,14 +437,15 @@
     this.port = await navigator.serial.requestPort();
     var opened = false;
     try {
-      await this.port.open({ baudRate: 115200, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' });
+      var baud = parseInt($('baud').value, 10) || 9600;   // 화면에서 고른 보드레이트
+      await this.port.open({ baudRate: baud, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' });
       opened = true;
       this.writer = this.port.writable.getWriter();
       this._onDisc = function () { self._closed('시리얼 포트가 분리되었습니다', true); };
       this.port.addEventListener('disconnect', this._onDisc);
       var info = {};
       try { info = this.port.getInfo() || {}; } catch (e) {}
-      this.name = '시리얼 115200' + (info.usbVendorId ? ' (USB ' + info.usbVendorId.toString(16) + ':' + (info.usbProductId || 0).toString(16) + ')' : '');
+      this.name = '시리얼 ' + baud + (info.usbVendorId ? ' (USB ' + info.usbVendorId.toString(16) + ':' + (info.usbProductId || 0).toString(16) + ')' : '');
       if (this._closedFired) throw new Error('연결 중 끊어졌습니다.');
     } catch (e) {
       // open 이후 단계에서 실패하면 포트를 닫아 재연결 시 "already open"을 막음
@@ -500,6 +513,8 @@
   // ---------------------------------------------------------------
   var transport = null;
   var txCount = 0, txErrors = 0, lastSentFrame = '';
+  var lastJoySent = null;   // 마지막으로 보낸 조이스틱 값 {x, y, t(값이 바뀐 시각)}
+  var lastEcho = null;      // 바이크가 되돌려 보낸 값 {x, y, t}
   var sender = {
     pendingJoy: null, pendingBtn: [], busy: false, lastWrite: 0,
     forceNeutral: false, // 쓰기 오류 복구 중: 중립이 성공적으로 전송될 때까지 조이스틱 프레임을 중립으로 대체
@@ -553,6 +568,10 @@
     txCount++;
     var changed = frame !== lastSentFrame;
     lastSentFrame = frame;
+    if (frame.length === 8) {   // 조이스틱 프레임: 숫자 6자리에서 X, Y 복원(+200 오프셋 제거)
+      var sx = parseInt(frame.slice(1, 4), 10) - 200, sy = parseInt(frame.slice(4, 7), 10) - 200;
+      if (!lastJoySent || lastJoySent.x !== sx || lastJoySent.y !== sy) lastJoySent = { x: sx, y: sy, t: performance.now() };
+    }
     $('txNow').textContent = '마지막 프레임: ' + B.frameToText(frame) + '   [' + B.frameToHex(frame) + ']';
     if (frame.length === 3) txLog('버튼 ' + B.frameToText(frame), 'i');
     else if ($('txAll').checked || (changed && frame !== NEUTRAL)) txLog(B.frameToText(frame), 't');
@@ -604,13 +623,34 @@
   }
   function handleRxLine(line) {
     var cls = '';
-    if (/first you need to calibrate|Has no calibration data/i.test(line)) {
+    var j = /^J (-?\d+) (-?\d+)\s*$/.exec(line);   // 03.Firmware 에코: "J 조향 속도"
+    if (j) {
+      lastEcho = { x: parseInt(j[1], 10), y: parseInt(j[2], 10), t: performance.now() };
+      updateEcho();
+      cls = 'i';
+    } else if (/first you need to calibrate|Has no calibration data/i.test(line)) {
       cls = 'w'; setCalib('need');
     } else if (/Read calibration data/i.test(line)) {
       setCalib('ok');
     }
     rxLog(visualize(line), cls);
   }
+  // 수신 확인 표시: 보낸 값과 바이크가 되돌려 보낸 값 비교
+  // (펌웨어는 값이 바뀔 때만 에코하므로, 값을 바꾼 뒤 0.5초 안에 같은 값이 돌아오면 정상)
+  function updateEcho() {
+    var dot = $('echoDot'), txt = $('echoText');
+    if (!transport) { dot.className = 'dot'; txt.textContent = '수신 확인: 대기'; return; }
+    if (lastEcho && lastJoySent && lastEcho.x === lastJoySent.x && lastEcho.y === lastJoySent.y) {
+      dot.className = 'dot ok'; txt.textContent = '수신 확인: J ' + lastEcho.x + ' ' + lastEcho.y;
+    } else if (lastJoySent && performance.now() - lastJoySent.t > 500) {
+      dot.className = 'dot err';
+      txt.textContent = lastEcho ? '수신 불일치(바이크 J ' + lastEcho.x + ' ' + lastEcho.y + ')' : '응답 없음: 보드레이트/결선/펌웨어 확인';
+    } else {
+      dot.className = 'dot warn'; txt.textContent = '수신 확인 중...';
+    }
+  }
+  setInterval(updateEcho, 250);
+
   function setCalib(state) {
     if (state === 'need') { $('calibDot').className = 'dot err'; $('calibText').textContent = '캘리브레이션 필요(구동 안 됨)'; }
     else if (state === 'ok') { $('calibDot').className = 'dot ok'; $('calibText').textContent = '캘리브레이션 데이터 있음'; }
@@ -627,6 +667,7 @@
     var connected = state === 'ok';
     $('btnBle').disabled = connected || connecting || !support.ble;
     $('btnSerial').disabled = connected || connecting || !support.serial;
+    $('baud').disabled = connected || connecting;   // 연결 중에는 보드레이트 변경 금지
     $('btnDisconnect').disabled = !connected;
   }
   function showAlert(msg) { var a = $('linkAlert'); a.textContent = msg; a.classList.add('show'); }
@@ -654,6 +695,7 @@
     transport = t;
     decoder = null; rxBuf = '';
     txErrors = 0; lastSentFrame = '';
+    lastJoySent = null; lastEcho = null;
     sender.reset();
     setConnUI('ok', '연결됨: ' + t.name);
     rxLog('연결됨: ' + t.name, 'i');
@@ -1006,6 +1048,10 @@
       }).catch(function () {});
     }
   })();
+
+  // 보드레이트 선택을 이 브라우저에 기억(저장 실패해도 동작에는 영향 없음)
+  try { var savedBaud = localStorage.getItem('bikeBaud'); if (savedBaud) $('baud').value = savedBaud; } catch (e) {}
+  $('baud').addEventListener('change', function () { try { localStorage.setItem('bikeBaud', $('baud').value); } catch (e) {} });
 
   setConnUI('idle', '연결 안 됨');
   setCalib(null);
