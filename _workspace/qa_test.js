@@ -276,10 +276,10 @@ function mkEv(o) { return Object.assign({ preventDefault() {}, repeat: false, ct
 const els = {};
 const ids = ['connDot', 'connText', 'calibPill', 'calibDot', 'calibText', 'btnBle', 'btnSerial', 'btnDisconnect', 'supportNote', 'linkAlert',
   'joy', 'valX', 'valY', 'dzX', 'dzY', 'estimate', 'estop', 'limitVal', 'limit', 'invX', 'invY', 'btn1', 'btn2',
-  'rxLog', 'rxClear', 'rxAuto', 'txNow', 'txLog', 'txClear', 'txAll', 'txStat'];
+  'rxLog', 'rxClear', 'rxAuto', 'txNow', 'txLog', 'txClear', 'txAll', 'txStat', 'baud', 'echoPill', 'echoDot', 'echoText'];
 const buttonIds = ['btnBle', 'btnSerial', 'btnDisconnect', 'estop', 'btn1', 'btn2', 'rxClear', 'txClear'];
 ids.forEach(id => { els[id] = makeEl(id, buttonIds.includes(id) ? 'button' : 'div'); });
-els.rxAuto.checked = true; els.limit.value = '50';
+els.rxAuto.checked = true; els.limit.value = '50'; els.baud.value = '9600';
 
 const docListeners = {}, winListeners = {};
 const document = {
@@ -383,7 +383,8 @@ async function runApp() {
   let i0 = mark();
   els.btnSerial.dispatch('click');
   await sleep(200);
-  check(lastPort && lastPort.openOpts && lastPort.openOpts.baudRate === 9600, 'serial opened at 9600');
+  check(lastPort && lastPort.openOpts && lastPort.openOpts.baudRate === 9600, 'serial opened at selected baud (9600, 03.Firmware)');
+  check(els.baud.disabled === true, 'baud select locked while connected');
   check(writes.length > i0 && writes[i0].s === NEU, 'first frame after connect is neutral', writes[i0] && txt(writes[i0].s));
   check(writes.some(w => w.s === '\x02S\x03'), 'calibration status requested after connect');
   check(/연결됨/.test(els.connText.textContent), 'UI connected');
@@ -392,6 +393,17 @@ async function runApp() {
   rxPush('first you need to calibrate the balancing point...\r\n');
   await sleep(20);
   check(/필요/.test(els.calibText.textContent), 'rx "first you need to calibrate" -> calib pill');
+
+  // rx "J x y" echo (03.Firmware) -> echo pill
+  rxPush('J 0 0\r\n');
+  await sleep(20);
+  check(els.echoDot.className === 'dot ok' && /J 0 0/.test(els.echoText.textContent), 'echo "J 0 0" matches neutral -> ok', els.echoText.textContent);
+  rxPush('J 5 5\r\n');
+  await sleep(600);
+  check(els.echoDot.className === 'dot err' && /불일치/.test(els.echoText.textContent), 'echo mismatch -> err', els.echoText.textContent);
+  rxPush('J 0 0\r\n');
+  await sleep(20);
+  check(els.echoDot.className === 'dot ok', 'echo restored -> ok');
 
   // joystick right full
   i0 = mark();

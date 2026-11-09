@@ -5,7 +5,13 @@ description: 밸런싱 바이크(remrc Self-Balancing-Bike 기반)의 블루투�
 
 # 바이크 통신 프로토콜
 
-출처: `01.Arduino Code and Library/remote.ino`. 코드와 다르면 코드가 정답이다.
+출처: `01.Arduino Code and Library/remote.ino`(원본), `03.Firmware/self_balancing_bike/`(현재 사용 펌웨어). 코드와 다르면 코드가 정답이다.
+
+## 03.Firmware 변경점 (2026-10-18 확인)
+- 보드레이트 **9600** (`Serial.begin(9600)`, HC-05 기본값). 원본 01은 115200. 웹 앱은 보드레이트 선택(기본 9600)을 제공한다.
+- **통신 두절 failsafe**: 정상 프레임이 500ms 없으면 `steering_remote = speed_remote = 0`. 앱의 80ms 주기 전송이 이 타이머를 계속 갱신한다.
+- **수신 에코**: 조이스틱 값이 바뀌면 `"J <joyX> <joyY>\r\n"`을 보낸다. 앱은 이것을 마지막 전송값과 비교해 "수신 확인" 표시에 쓴다.
+- 파서: ETX로 끝난 프레임(`complete`)만 적용하고 `cmd[7]` 밖에는 쓰지 않는다(01의 범위 밖 쓰기 버그 수정).
 
 ## 링크
 - UART 115200 baud (`Serial.begin(115200)`). 블루투스 모듈은 이 보레이트의 투명 시리얼 브리지여야 한다. 모듈 종류(BLE/클래식)는 코드로 확인되지 않으므로 사용자에게 확인한다.
