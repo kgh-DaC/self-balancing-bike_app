@@ -108,7 +108,7 @@
     <div class="note" id="supportNote"></div>
     <div class="note">
       BLE: HM-10 계열(FFE0/FFE1)과 Nordic UART 서비스를 자동 탐색합니다.
-      클래식 블루투스(HC-05/06): Windows 설정에서 먼저 페어링하면 생기는 COM 포트를 "시리얼(COM) 연결"로 선택하세요(115200bps).
+      클래식 블루투스(HC-05/06): Windows 설정에서 먼저 페어링하면 생기는 COM 포트를 "시리얼(COM) 연결"로 선택하세요(현재 펌웨어 기준 9600bps).
     </div>
     <div class="alert" id="linkAlert"></div>
   </section>
@@ -184,6 +184,7 @@
   var STX = '\x02', ETX = '\x03';
   var AXIS_MIN = -100, AXIS_MAX = 100, OFFSET = 200, DEADZONE = 10;
   var BUTTON_CODES = ['A', 'B', 'C', 'D'];
+  var STATUS_REQUEST = STX + 'S' + ETX;
 
   // 임의 입력 -> -100~100 정수. 숫자가 아니면 안전하게 0(중립).
   function clampAxis(v) {
@@ -261,6 +262,7 @@
   }
   return Object.freeze({
     STX: STX, ETX: ETX, OFFSET: OFFSET, DEADZONE: DEADZONE, AXIS_MIN: AXIS_MIN, AXIS_MAX: AXIS_MAX,
+    STATUS_REQUEST: STATUS_REQUEST,
     NEUTRAL_FRAME: encodeJoystick(0, 0),
     clampAxis: clampAxis, encodeAxis: encodeAxis, encodeJoystick: encodeJoystick, encodeButton: encodeButton,
     toBytes: toBytes, frameToHex: frameToHex, frameToText: frameToText,
@@ -425,14 +427,14 @@
     this.port = await navigator.serial.requestPort();
     var opened = false;
     try {
-      await this.port.open({ baudRate: 115200, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' });
+      await this.port.open({ baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none', flowControl: 'none' });
       opened = true;
       this.writer = this.port.writable.getWriter();
       this._onDisc = function () { self._closed('시리얼 포트가 분리되었습니다', true); };
       this.port.addEventListener('disconnect', this._onDisc);
       var info = {};
       try { info = this.port.getInfo() || {}; } catch (e) {}
-      this.name = '시리얼 115200' + (info.usbVendorId ? ' (USB ' + info.usbVendorId.toString(16) + ':' + (info.usbProductId || 0).toString(16) + ')' : '');
+      this.name = '시리얼 9600' + (info.usbVendorId ? ' (USB ' + info.usbVendorId.toString(16) + ':' + (info.usbProductId || 0).toString(16) + ')' : '');
       if (this._closedFired) throw new Error('연결 중 끊어졌습니다.');
     } catch (e) {
       // open 이후 단계에서 실패하면 포트를 닫아 재연결 시 "already open"을 막음
@@ -554,7 +556,8 @@
     var changed = frame !== lastSentFrame;
     lastSentFrame = frame;
     $('txNow').textContent = '마지막 프레임: ' + B.frameToText(frame) + '   [' + B.frameToHex(frame) + ']';
-    if (frame.length === 3) txLog('버튼 ' + B.frameToText(frame), 'i');
+    if (frame === B.STATUS_REQUEST) txLog('캘리브레이션 상태 요청', 'i');
+    else if (frame.length === 3) txLog('버튼 ' + B.frameToText(frame), 'i');
     else if ($('txAll').checked || (changed && frame !== NEUTRAL)) txLog(B.frameToText(frame), 't');
   }
 
@@ -637,6 +640,7 @@
     hideAlert();
     connecting = true;
     setConnUI('busy', '연결 중...');
+    setCalib('unknown');
     var t = kind === 'ble' ? new BleTransport() : new SerialTransport();
     t.onData = onRx;
     t.onClose = function (reason, unexpected) { onTransportClosed(t, reason, unexpected); };
@@ -660,6 +664,7 @@
     // 안전: 연결 직후 입력 초기화 + 중립 전송
     releaseAllInputs(false);
     sendNeutralNow('연결 직후');
+    sender.queueBtn(B.STATUS_REQUEST);
     startTxLoop();
   }
 

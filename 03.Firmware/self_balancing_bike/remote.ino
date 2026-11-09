@@ -72,6 +72,9 @@ void getButtonState (int bStatus)  {
     case 'D':
       buttonStatus &= B111101;        // OFF    
       break;
+    case 'S':
+      Serial.println(calibrated ? "Read calibration data!" : "Has no calibration data!");
+      break;
   }
 }
 

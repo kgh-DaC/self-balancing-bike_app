@@ -383,8 +383,9 @@ async function runApp() {
   let i0 = mark();
   els.btnSerial.dispatch('click');
   await sleep(200);
-  check(lastPort && lastPort.openOpts && lastPort.openOpts.baudRate === 115200, 'serial opened at 115200');
+  check(lastPort && lastPort.openOpts && lastPort.openOpts.baudRate === 9600, 'serial opened at 9600');
   check(writes.length > i0 && writes[i0].s === NEU, 'first frame after connect is neutral', writes[i0] && txt(writes[i0].s));
+  check(writes.some(w => w.s === '\x02S\x03'), 'calibration status requested after connect');
   check(/연결됨/.test(els.connText.textContent), 'UI connected');
 
   // rx text -> calib pill
