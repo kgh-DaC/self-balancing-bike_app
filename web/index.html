@@ -78,7 +78,12 @@
   kbd { background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 12px; }
   /* 핀 연결 카드 */
   .pin-card h3 { font-size: 13px; margin: 14px 0 6px; color: var(--text); }
-  .pin-card svg { width: 100%; max-width: 680px; display: block; margin: 0 auto; }
+  .pin-card svg { width: 100%; display: block; margin: 0 auto; }
+  .pin-figs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); gap: 12px; align-items: start; }
+  .pin-fig { margin: 0; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+  .pin-fig figcaption { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+  .pin-fig .muted { margin-top: 4px; }
+  @media (max-width: 900px) { .pin-figs { grid-template-columns: 1fr; } }
   .pin-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0; font-size: 13px; }
   .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
   .pin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -200,7 +205,17 @@
   <section class="card pin-card" id="cardPins" aria-labelledby="hPins">
     <h2 id="hPins">핀 연결 (아두이노 나노 + 제작 PCB BlanceBike)</h2>
     <div class="muted" style="margin-bottom:6px">근거: 제작 PCB 설계 자료(self-balancing-bike_pcb, 2026-10-12 실보드 확정·FlyWheel 도통 시험)와 펌웨어 03.Firmware</div>
-    <svg id="nanoSvg" viewBox="0 0 660 250" role="img" aria-label="아두이노 나노 핀 배치와 사용 중인 핀"></svg>
+    <div class="pin-figs">
+      <figure class="pin-fig">
+        <figcaption>아두이노 나노 (사용 중인 핀)</figcaption>
+        <svg id="nanoSvg" viewBox="0 0 660 250" role="img" aria-label="아두이노 나노 핀 배치와 사용 중인 핀"></svg>
+      </figure>
+      <figure class="pin-fig">
+        <figcaption>제작 PCB 윗면 (실제 배치, 69.5 × 50.5 mm)</figcaption>
+        <svg id="pcbSvg" viewBox="0 0 800 600" role="img" aria-label="제작 PCB 윗면 커넥터 배치와 핀 신호"></svg>
+        <div class="muted">핀 색은 왼쪽 나노 그림·범례와 같다. 빨강 = 배터리(VIN), 분홍 = 5V, 회색 = GND, 사각 테두리 = 1번 핀. 핀에 마우스를 올리면 신호와 나노 핀이 나온다.</div>
+      </figure>
+    </div>
     <div class="pin-legend" id="pinLegend"></div>
 
     <h3>① 기능별 핀 (나노 ↔ PCB 커넥터)</h3>
@@ -1209,6 +1224,114 @@
   BOT.forEach(function (k, i) { svg += box(k, BOT_LABEL[k] || k, 120 + i * 33, 172, true); });
   setPinHtml('nanoSvg', svg);
 
+
+  // ── 제작 PCB 윗면 그림: self-balancing-bike_pcb 03_layout_plan.md 2.1절 핀 좌표(mm, 원점 좌하단, Top 면) ──
+  (function drawPcb() {
+    var K = 9, MX = 82, MY = 48, BW = 69.5, BH = 50.5;
+    var X = function (x) { return MX + x * K; };
+    var Y = function (y) { return MY + (BH - y) * K; };
+    var colorOf = function (nano) { var u = users[nano]; return u ? u.e.color : null; };
+    var PWR = { VIN: '#e03131', BAT: '#e03131', V5: '#f783ac', GND: '#868e96', NC: '#0d1118' };
+    // 핀: [x, y, 표시 이름, 나노 핀 또는 전원 종류, 설명]
+    var CONN = [
+      { name: 'FlyWheel', lab: 'below', pins: [
+        [25.25, 3.2, 'VIN', 'VIN', '1번 배터리 약 12V(모터 전원)'], [22.75, 3.2, 'GND', 'GND', '2번 GND'], [20.25, 3.2, 'EN', 'D8', '3번 EN(브레이크)'],
+        [17.75, 3.2, 'PWMF', 'D9', '4번 PWMF'], [15.25, 3.2, 'DIRF', 'D7', '5번 DIRF'], [12.75, 3.2, '+5V', 'V5', '6번 +5V(엔코더·드라이버 로직)'],
+        [10.25, 3.2, 'A', 'D3', '7번 엔코더 A'], [7.75, 3.2, 'B', 'D2', '8번 엔코더 B']] },
+      { name: 'Bluetooth', lab: 'left', pins: [
+        [2.75, 8.65, 'V', 'V5', '1번 +5V1(나노 5V)'], [2.75, 11.19, 'G', 'GND', '2번 GND'],
+        [2.75, 13.73, 'T', 'D0', '3번 모듈 TX → 나노 RX(D0)'], [2.75, 16.27, 'R', 'D1', '4번 모듈 RX ← 나노 TX(D1)']] },
+      { name: 'Servo2 뒷바퀴', lab: 'above', pins: [
+        [21.2, 48.1, 'S', 'D10', '1번 PWMM 신호(D10)'], [18.66, 48.1, '+', 'V5', '2번 +5V'], [16.12, 48.1, '−', 'GND', '3번 GND']] },
+      { name: 'Servo1 조향', lab: 'above', pins: [
+        [53.8, 48.1, 'S', 'A3', '1번 SER 신호(A3)'], [51.26, 48.1, '+', 'V5', '2번 +5V'], [48.72, 48.1, '−', 'GND', '3번 GND']] },
+      { name: 'MPU6050', lab: 'above', pins: [
+        [25.85, 34.25, 'VCC', 'V5', '1번 +5V1'], [28.39, 34.25, 'GND', 'GND', '2번 GND'], [30.93, 34.25, 'SCL', 'A5', '3번 SCL(A5)'], [33.47, 34.25, 'SDA', 'A4', '4번 SDA(A4)'],
+        [36.01, 34.25, 'XDA', 'NC', '5번 미연결'], [38.55, 34.25, 'XCL', 'NC', '6번 미연결'], [41.09, 34.25, 'AD0', 'NC', '7번 미연결'], [43.63, 34.25, 'INT', 'NC', '8번 미연결']] },
+      { name: 'U3 ON/OFF', lab: 'right', pins: [
+        [9.28, 43.71, 'BAT', 'BAT', '1번 배터리(스위치 전단)'], [9.28, 39.01, 'VIN', 'VIN', '2번 VIN(가운데, 스위치 후단)'], [9.28, 34.31, 'NC', 'NC', '3번 미사용']] },
+      { name: 'CN1 12Vin', lab: 'left', pins: [
+        [59.2, 28.86, '+', 'BAT', '1번 배터리 +'], [59.2, 33.94, '−', 'GND', '2번 배터리 −']] },
+      { name: 'DC1 Charger', lab: 'below', pins: [
+        [55.9, 40.8, '+', 'BAT', '1번 중심 핀 +(충전기)'], [62.0, 40.8, '−', 'GND', '2번 슬리브 GND'], [58.85, 45.25, '', 'GND', '3번 측면 GND']] },
+    ];
+    var o = '';
+    // 보드
+    o += '<rect x="' + X(0) + '" y="' + Y(BH) + '" width="' + BW * K + '" height="' + BH * K + '" rx="' + 2 * K + '" fill="#14532d" stroke="#2f9e44" stroke-width="1.5"/>';
+    [[3, 3], [3, 47.5], [66.5, 3], [66.5, 47.5]].forEach(function (h) {
+      o += '<circle cx="' + X(h[0]) + '" cy="' + Y(h[1]) + '" r="' + 2.15 * K + '" fill="#c9a227" opacity=".85"/><circle cx="' + X(h[0]) + '" cy="' + Y(h[1]) + '" r="' + 1.25 * K + '" fill="#0f1318"/>';
+    });
+    // 큰 부품 외곽(참고)
+    var box = function (x1, y1, x2, y2, fill, txt) {
+      o += '<rect x="' + X(x1) + '" y="' + Y(y2) + '" width="' + (x2 - x1) * K + '" height="' + (y2 - y1) * K + '" rx="4" fill="' + fill + '" stroke="#5c7cfa" stroke-opacity=".35"/>';
+      if (txt) o += '<text x="' + X((x1 + x2) / 2) + '" y="' + (Y((y1 + y2) / 2) + 4) + '" text-anchor="middle" font-size="12" fill="#9fb4d8" font-family="Segoe UI,sans-serif">' + txt + '</text>';
+    };
+    box(26.5, 5.6, 67.2, 25.8, 'rgba(20,60,110,.55)', '');      // 나노 모듈
+    box(64.5, 12.2, 72.5, 19.2, 'rgba(160,170,180,.5)', '');     // USB
+    o += '<text x="' + X(46.75) + '" y="' + (Y(15.7) + 5) + '" text-anchor="middle" font-size="18" font-weight="700" fill="#7fb2d9" font-family="Segoe UI,sans-serif">Arduino Nano</text>';
+    o += '<text x="' + X(68.6) + '" y="' + (Y(15.7) + 4) + '" text-anchor="middle" font-size="9" fill="#222" font-family="Segoe UI,sans-serif">USB</text>';
+    box(52.6, 37.6, 69.5 + 3.5, 48.0, 'rgba(30,30,30,.55)', '');   // DC 잭
+    box(56.4, 26.2, 69.5 + 2, 36.6, 'rgba(56,160,90,.45)', '');    // 단자대
+    box(5.0, 31.8, 11.6, 46.2, 'rgba(40,40,40,.55)', '');          // 스위치
+    box(-3.2, 37.3, 5.0, 40.7, 'rgba(90,90,90,.8)', '');           // 레버
+    o += '<circle cx="' + X(14.7) + '" cy="' + Y(12.9) + '" r="' + 5.6 * K + '" fill="rgba(30,30,30,.7)" stroke="#555"/>'
+      + '<text x="' + X(14.7) + '" y="' + (Y(12.9) + 4) + '" text-anchor="middle" font-size="14" fill="#bbb" font-family="Segoe UI,sans-serif">부저</text>';
+    // 나노 소켓 핀(위 열 Y 23.32: 1 D13 X 64.53 → 15 VIN X 28.97 / 아래 열 Y 8.08: 16 TXD X 28.97 → 30 D12 X 64.53)
+    var TOPN = ['D13', '3V3', 'REF', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', '5V', 'RST', 'GND', 'VIN'];
+    var BOTN = ['D1', 'D0', 'RST', 'GND', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12'];
+    var BOTL = { D1: 'TX', D0: 'RX' };
+    var nanoPad = function (x, y, name, label, labY) {
+      var c = colorOf(name) || (name === 'VIN' ? PWR.VIN : name === '5V' ? PWR.V5 : name === 'GND' ? PWR.GND : null);
+      var u = users[name];
+      var tip = name + (u ? ': ' + u.e.func + ' ' + u.p.t : name === 'VIN' ? ': 배터리 VIN 입력' : name === '5V' ? ': +5V1 출력(MPU6050·블루투스)' : name === 'GND' ? ': GND' : ': 미사용');
+      o += '<g><title>' + esc(tip) + '</title><circle cx="' + X(x) + '" cy="' + Y(y) + '" r="8.5" fill="' + (c || '#0d1118') + '" stroke="' + (c ? '#fff' : '#4a5a6c') + '" stroke-width="1"/>'
+        + '<circle cx="' + X(x) + '" cy="' + Y(y) + '" r="2.6" fill="#000" opacity=".6"/>'
+        + '<text x="' + X(x) + '" y="' + labY + '" text-anchor="middle" font-size="10.5" fill="' + (c ? '#e8eaf6' : '#7a8aa0') + '" font-family="Consolas,monospace">' + esc(label) + '</text></g>';
+    };
+    TOPN.forEach(function (n, i) { nanoPad(64.53 - i * 2.54, 23.32, n, n, Y(23.32) + 22); });
+    BOTN.forEach(function (n, i) { nanoPad(28.97 + i * 2.54, 8.08, n, BOTL[n] || n, Y(8.08) - 13); });
+    // 커넥터
+    CONN.forEach(function (cn) {
+      var xs = cn.pins.map(function (q) { return X(q[0]); }), ys = cn.pins.map(function (q) { return Y(q[1]); });
+      var x1 = Math.min.apply(null, xs) - 12, x2 = Math.max.apply(null, xs) + 12, y1 = Math.min.apply(null, ys) - 12, y2 = Math.max.apply(null, ys) + 12;
+      if (cn.name.indexOf('DC1') < 0 && cn.name.indexOf('CN1') < 0 && cn.name.indexOf('U3') < 0)
+        o += '<rect x="' + x1 + '" y="' + y1 + '" width="' + (x2 - x1) + '" height="' + (y2 - y1) + '" rx="3" fill="#f1f3f5" fill-opacity=".1" stroke="#dee2e6" stroke-opacity=".7"/>';
+      // 커넥터 이름
+      var nx, ny, anchor = 'middle';
+      if (cn.lab === 'below' && cn.name === 'FlyWheel') { nx = (x1 + x2) / 2; ny = y1 - 8; }
+      else if (cn.lab === 'above') { nx = (x1 + x2) / 2; ny = y2 + 17; }
+      else if (cn.lab === 'left' && cn.name === 'Bluetooth') { nx = x2 + 6; ny = y1 + 10; anchor = 'start'; }
+      else if (cn.name.indexOf('CN1') === 0) { nx = X(63.5); ny = Y(31.4) + 4; }
+      else if (cn.name.indexOf('DC1') === 0) { nx = X(63.0); ny = Y(47.0); }
+      else { nx = X(9.28); ny = Y(46.8); }
+      o += '<text x="' + nx + '" y="' + ny + '" text-anchor="' + anchor + '" font-size="15" font-weight="700" fill="#f8f9fa" font-family="Segoe UI,sans-serif">' + esc(cn.name) + '</text>';
+      cn.pins.forEach(function (q, i) {
+        var kind = q[3], c = PWR[kind] || colorOf(kind) || '#0d1118';
+        var px = X(q[0]), py = Y(q[1]);
+        var tip = cn.name + ' ' + q[4] + (users[kind] ? ' — 나노 ' + kind : '');
+        o += '<g><title>' + esc(tip) + '</title>'
+          + (i === 0 ? '<rect x="' + (px - 10) + '" y="' + (py - 10) + '" width="20" height="20" rx="2" fill="' + c + '" stroke="#fff" stroke-width="1.6"/>'
+                     : '<circle cx="' + px + '" cy="' + py + '" r="10" fill="' + c + '" stroke="' + (kind === 'NC' ? '#4a5a6c' : '#fff') + '" stroke-width="1.1"/>')
+          + '<text x="' + px + '" y="' + (py + 3.5) + '" text-anchor="middle" font-size="11.5" font-weight="700" fill="' + (kind === 'NC' ? '#7a8aa0' : '#111') + '" font-family="Consolas,monospace">' + (i + 1) + '</text>';
+        if (q[2]) {
+          var lx = px, ly = py, la = 'middle', rot = '';
+          if (cn.lab === 'below' && cn.name === 'FlyWheel') { ly = py + 16; la = 'end'; rot = ' transform="rotate(-90 ' + lx + ' ' + ly + ')"'; }
+          else if (cn.lab === 'above' && cn.name === 'MPU6050') { ly = py - 14; la = 'start'; rot = ' transform="rotate(-90 ' + lx + ' ' + ly + ')"'; }
+          else if (cn.lab === 'above') { ly = py - 15; }
+          else if (cn.lab === 'left') { lx = px - 15; ly = py + 4; la = 'end'; }
+          else if (cn.lab === 'right') { lx = px + 15; ly = py + 4; la = 'start'; }
+          else { ly = py + 22; }
+          var lab = (users[kind] ? q[2] + ' ' + kind : q[2]);
+          if (cn.name === 'MPU6050' || cn.name.indexOf('Servo') === 0) lab = q[2];
+          o += '<text x="' + lx + '" y="' + ly + '" text-anchor="' + la + '"' + rot + ' font-size="13" fill="#e9ecef" font-family="Consolas,monospace">' + esc(lab) + '</text>';
+        }
+        o += '</g>';
+      });
+    });
+    // 방향 표시
+    o += '<text x="' + X(0) + '" y="' + (Y(0) + 76) + '" font-size="14" fill="#8a97a5" font-family="Segoe UI,sans-serif">← 왼쪽: 스위치 레버·블루투스 / 아래: FlyWheel 케이블 / 오른쪽: 충전잭·배터리 단자 →</text>';
+    setPinHtml('pcbSvg', o);
+  })();
   setPinHtml('pinLegend', PINMAP.map(function (e) {
     return '<span><span class="swatch" style="background:' + e.color + '"></span>' + esc(e.func) + '</span>';
   }).join(''));
