@@ -14,3 +14,4 @@
 | 2026-11-26 | 핀 연결 카드 근거를 제작 PCB 레포(kgh-DaC/self-balancing-bike_pcb, 2026-10-12 실보드 확정)로 바꿈: FlyWheel 1 VIN … 8 B(원본 SCH와 반대), 엔코더 A=D3·B=D2, U2 TPS563201, 실크 표시, 모터 케이블 색, 보호 회로 없음 | web/index.html | 사용자 제공 PCB 자료 |
 | 2026-11-26 | 핀 카드에 제작 PCB 윗면 그림 추가(나노 그림 옆, 03_layout_plan 2.1절 핀 좌표로 실척 배치, 커넥터 핀 번호·신호·1번 핀 표시) | web/index.html | 사용자 요청 |
 | 2026-11-26 | 3D 바이크 카드(web/twin.js + three.js 로컬 묶음 web/vendor, window.bikeState로 조향·속도·연결·캘리브레이션 전달), 별도 나노 그림 삭제, qa_test는 외부 src 스크립트를 인라인 개수에서 제외 | web/index.html, web/twin.js, qa_test.js | 사용자 요청 |
+| 2026-11-27 | 3D 창 축소(높이 360→300px), 주행 줄 배치: 3D(왼쪽)·조이스틱(오른쪽)·설정(넓은 화면 맨 오른쪽, 1100px 이하 아래) | web/index.html | 사용자 요청 |
