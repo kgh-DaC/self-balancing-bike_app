@@ -23,7 +23,7 @@ section('1. script extraction / syntax');
 const scripts = [];
 const re = /<script([^>]*)>([\s\S]*?)<\/script>/g;
 let m;
-while ((m = re.exec(HTML))) scripts.push({ attrs: m[1], code: m[2] });
+while ((m = re.exec(HTML))) if (!/\ssrc=/.test(m[1])) scripts.push({ attrs: m[1], code: m[2] });   // 외부 파일(vendor/three, twin.js)은 제외
 check(scripts.length === 2, 'two inline script blocks', 'found ' + scripts.length);
 scripts.forEach((s, i) => {
   try { new vm.Script(s.code, { filename: 'script' + i + '.js' }); check(true, 'syntax ok script#' + i); }

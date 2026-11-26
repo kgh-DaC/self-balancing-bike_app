@@ -92,6 +92,12 @@
   .pin-scroll { overflow-x: auto; }
   .pin-warn { margin: 6px 0 0; padding: 8px 10px 8px 28px; border-radius: 8px; background: rgba(240,180,41,.12); border: 1px solid rgba(240,180,41,.35); font-size: 13px; line-height: 1.5; }
   .pin-warn li { margin: 2px 0; }
+  /* 3D 형상 */
+  .twin { width: 100%; height: 360px; border-radius: 10px; overflow: hidden; touch-action: none;
+    background: radial-gradient(ellipse at 50% 30%, #2b3446, #141922); }
+  .twin canvas { display: block; width: 100% !important; height: 100% !important; }
+  .twin.twin-missing { height: auto; padding: 12px; }
+  @media (max-width: 760px) { .twin { height: 280px; } }
 </style>
 </head>
 <body>
@@ -139,6 +145,17 @@
     </div>
     <div class="note">BLE 연결은 보드레이트를 고르지 않습니다. 모듈(HM-10 등) 자체의 UART 속도가 펌웨어와 같아야 합니다(HM-10 기본 9600).</div>
     <div class="alert" id="linkAlert"></div>
+  </section>
+
+  <!-- 3D 형상: twin.js (보낸 조향·속도와 연결·캘리브레이션 상태로 움직임) -->
+  <section class="card" id="cardTwin">
+    <h2>3D 바이크 <span class="muted">(끌어서 돌리기 · 휠로 확대)</span></h2>
+    <div id="bikeTwin" class="twin" role="img" aria-label="밸런싱 바이크 3D 형상: 조이스틱 입력에 따라 앞바퀴 조향, 뒷바퀴 회전, 플라이휠 회전을 보여 줍니다"></div>
+    <div class="row" style="margin-top:8px">
+      <button id="bikeTwinReset" type="button">시점 초기화</button>
+      <span class="muted" id="twinNote">연결 전에는 조이스틱 입력을 미리 보여 줍니다. 표시등: 회색 = 연결 안 됨, 빨강 = 캘리브레이션 필요(구동 안 함), 초록 = 균형 제어 중.</span>
+    </div>
+    <div class="muted" style="margin-top:4px">바이크는 기울기·바퀴 속도를 보내지 않습니다. 앞바퀴 조향(데드존 ±10)·뒷바퀴 회전·이동은 보낸 값으로 계산한 근사이고, 플라이휠 회전은 균형 제어 중임을 나타내는 표시입니다.</div>
   </section>
 
   <div class="grid">
@@ -565,6 +582,7 @@
   var txCount = 0, txErrors = 0, lastSentFrame = '';
   var lastJoySent = null;   // 마지막으로 보낸 조이스틱 값 {x, y, t(값이 바뀐 시각)}
   var lastEcho = null;      // 바이크가 되돌려 보낸 값 {x, y, t}
+  var calibState = 'unknown';   // 3D 형상(twin.js)에 넘길 캘리브레이션 상태
   var sender = {
     pendingJoy: null, pendingBtn: [], busy: false, lastWrite: 0,
     forceNeutral: false, // 쓰기 오류 복구 중: 중립이 성공적으로 전송될 때까지 조이스틱 프레임을 중립으로 대체
@@ -703,6 +721,7 @@
   setInterval(updateEcho, 250);
 
   function setCalib(state) {
+    calibState = state === 'need' || state === 'ok' ? state : 'unknown';
     if (state === 'need') { $('calibDot').className = 'dot err'; $('calibText').textContent = '캘리브레이션 필요(구동 안 됨)'; }
     else if (state === 'ok') { $('calibDot').className = 'dot ok'; $('calibText').textContent = '캘리브레이션 데이터 있음'; }
     else { $('calibDot').className = 'dot'; $('calibText').textContent = '캘리브레이션 상태 미확인'; }
@@ -862,6 +881,8 @@
     updateKeyboard();
     out = computeCurrent();
     renderValues();
+    // 3D 형상(twin.js) 입력: 보내는 값과 연결·캘리브레이션 상태
+    window.bikeState = { x: out.x, y: out.y, connected: !!(transport && transport.connected), calib: calibState, estop: estop };
     if (transport && transport.connected && !disconnecting) {
       sender.queueJoy(B.encodeJoystick(out.x, out.y));
     }
@@ -1320,5 +1341,8 @@
   setPinHtml('pinWarn', WARN.map(function (w) { return '<li>' + w + '</li>'; }).join(''));
 })();
 </script>
+<!-- 3D 형상: three.js r160 로컬 묶음(SMARS·Otto와 같은 파일, 인터넷 불필요) + twin.js -->
+<script src="vendor/three-r160-bundle.js"></script>
+<script src="twin.js"></script>
 </body>
 </html>
