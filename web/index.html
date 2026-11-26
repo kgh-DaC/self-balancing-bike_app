@@ -76,6 +76,18 @@
   .mono { font-family: ui-monospace, Consolas, "D2Coding", monospace; }
   .txnow { font-size: 13px; padding: 6px 8px; background: #0b0e12; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; }
   kbd { background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 12px; }
+  /* 핀 연결 카드 */
+  .pin-card h3 { font-size: 13px; margin: 14px 0 6px; color: var(--text); }
+  .pin-card svg { width: 100%; max-width: 680px; display: block; margin: 0 auto; }
+  .pin-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0; font-size: 13px; }
+  .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .pin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .pin-table th, .pin-table td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  .pin-table th { color: var(--muted); font-weight: 600; }
+  .pin-table td.pn { font-family: ui-monospace, Consolas, monospace; font-weight: 700; white-space: nowrap; }
+  .pin-scroll { overflow-x: auto; }
+  .pin-warn { margin: 6px 0 0; padding: 8px 10px 8px 28px; border-radius: 8px; background: rgba(240,180,41,.12); border: 1px solid rgba(240,180,41,.35); font-size: 13px; line-height: 1.5; }
+  .pin-warn li { margin: 2px 0; }
 </style>
 </head>
 <body>
@@ -183,6 +195,33 @@
         <span class="muted" id="txStat"></span></div>
     </section>
   </div>
+
+  <!-- 핀 연결: 아두이노 나노 + 제작 PCB (근거: 03.Firmware/self_balancing_bike.ino 5-15·85-88행, PCB 회로도 SCH.pdf V1.0 '3D打印平衡车-BlanceBike') -->
+  <section class="card pin-card" id="cardPins" aria-labelledby="hPins">
+    <h2 id="hPins">핀 연결 (아두이노 나노 + 제작 PCB)</h2>
+    <svg id="nanoSvg" viewBox="0 0 660 250" role="img" aria-label="아두이노 나노 핀 배치와 사용 중인 핀"></svg>
+    <div class="pin-legend" id="pinLegend"></div>
+
+    <h3>① 기능별 핀 (나노 ↔ PCB 커넥터)</h3>
+    <div class="pin-scroll"><table class="pin-table">
+      <thead><tr><th>기능</th><th>신호</th><th>나노 핀</th><th>PCB 커넥터·번호</th><th>설명</th></tr></thead>
+      <tbody id="pinBody"></tbody>
+    </table></div>
+
+    <h3>② PCB 커넥터 (기구부 연결)</h3>
+    <div class="pin-scroll"><table class="pin-table">
+      <thead><tr><th>커넥터</th><th>연결 부품</th><th>핀 순서 (1번부터)</th><th>주의</th></tr></thead>
+      <tbody id="connBody"></tbody>
+    </table></div>
+
+    <h3>③ 전원 회로</h3>
+    <div class="pin-scroll"><table class="pin-table">
+      <thead><tr><th>부분</th><th>부품</th><th>설명</th></tr></thead>
+      <tbody id="powerBody"></tbody>
+    </table></div>
+
+    <ul class="pin-warn" id="pinWarn"></ul>
+  </section>
 </div>
 
 <!-- ===== 순수 프로토콜 함수 (QA 테스트용: 이 script 블록만 추출해 Node vm으로 실행 가능) ===== -->
@@ -1064,6 +1103,121 @@
   window.addEventListener('resize', resizeCanvas);
   renderValues();
   requestAnimationFrame(draw);
+})();
+
+// 핀 연결 카드. 펌웨어(03.Firmware)와 PCB 회로도(SCH.pdf V1.0)를 함께 근거로 한다.
+// 핀을 바꾸면 self_balancing_bike.ino의 #define과 이 표를 함께 고친다.
+(function () {
+  var PINMAP = [
+    { func: '플라이휠 모터 (균형)', color: '#4f8ef7', pins: [
+      { p: 'D9', t: 'PWMF — 속도 PWM', c: 'FlyWheel 5번', note: '펌웨어 PWM_1. Timer1 PWM 7.8kHz, 출력 = 255 − |속도|(값이 작을수록 빠름)' },
+      { p: 'D7', t: 'DIRF — 회전 방향', c: 'FlyWheel 4번', note: '펌웨어 DIR_1' },
+      { p: 'D8', t: 'EN — 브레이크/구동 허용', c: 'FlyWheel 6번', note: '펌웨어 BRAKE. HIGH = 구동(세워져 있고 캘리브레이션 완료), LOW = 정지(넘어짐·대기)' },
+    ] },
+    { func: '플라이휠 엔코더', color: '#22b8cf', pins: [
+      { p: 'D2', t: 'A상', c: 'FlyWheel 2번', note: '외부 인터럽트 0 (CHANGE)' },
+      { p: 'D3', t: 'B상', c: 'FlyWheel 1번', note: '외부 인터럽트 1 (CHANGE)' },
+    ] },
+    { func: '조향 서보 (앞바퀴)', color: '#40c057', pins: [
+      { p: 'A3', t: 'SER — 서보 신호', c: 'Servo1 1번', note: 'ServoTimer2, 중앙 1500µs, ±350µs' },
+    ] },
+    { func: '구동 서보 (뒷바퀴, 360°)', color: '#94d82d', pins: [
+      { p: 'D10', t: 'PWMM — 서보 신호', c: 'Servo2 1번', note: '360° 연속 회전 서보. 1500µs 정지, 전진·후진은 1500±속도×7µs' },
+    ] },
+    { func: '기울기 센서 MPU6050', color: '#fd7e14', pins: [
+      { p: 'A4', t: 'SDA', c: 'MPU6050 4번', note: 'I2C 주소 0x68' },
+      { p: 'A5', t: 'SCL', c: 'MPU6050 3번', note: '' },
+    ] },
+    { func: '블루투스 HC-05', color: '#9775fa', pins: [
+      { p: 'D0', t: 'RXD — 나노 수신', c: 'Bluetooth 3번', note: '하드웨어 Serial 9600bps. 모듈의 TXD가 여기로' },
+      { p: 'D1', t: 'TXD — 나노 송신', c: 'Bluetooth 4번', note: '모듈의 RXD가 여기로. USB와 같은 선 → 업로드할 때 모듈을 뺀다' },
+    ] },
+    { func: '부저', color: '#e64980', pins: [
+      { p: 'D12', t: 'BEEP', c: '(PCB 위 BUZZER1)', note: '1kΩ → S8050 트랜지스터로 구동' },
+    ] },
+    { func: '배터리 전압', color: '#ffd43b', pins: [
+      { p: 'A0', t: 'AD1 — 전압 분배', c: '(PCB 위 R2·R1)', note: '33k/22k 분배: 배터리 전압 = A0 전압 × 2.5 (최대 12.5V)' },
+    ] },
+    { func: '미연결 신호', color: '#868e96', pins: [
+      { p: 'D5', t: 'DIRM', c: '(커넥터 없음)', note: '펌웨어 DIR_2. 뒷바퀴가 360° 서보라 쓰이지 않음' },
+    ] },
+  ];
+
+  var CONNECTORS = [
+    { n: 'FlyWheel (8핀)', part: '플라이휠 모터(엔코더·드라이버 내장형 BLDC)',
+      pins: '1 B(엔코더 B, D3) · 2 A(엔코더 A, D2) · 3 +5V · 4 DIRF(D7) · 5 PWMF(D9) · 6 EN(D8) · 7 GND · 8 VIN(배터리)',
+      warn: '8번은 배터리 전압이 바로 나온다. 모터 케이블의 핀 순서를 PCB 1번 표시에 맞춰 꽂는다' },
+    { n: 'Servo1 (3핀)', part: '조향 서보(앞바퀴)', pins: '1 SER 신호(A3) · 2 +5V · 3 GND', warn: '서보 커넥터의 신호선(주황·노랑)을 1번에' },
+    { n: 'Servo2 (3핀)', part: '360° 서보(뒷바퀴 구동)', pins: '1 PWMM 신호(D10) · 2 +5V · 3 GND', warn: '일반 180° 서보가 아니라 연속 회전 서보를 단다' },
+    { n: 'MPU6050 (8핀)', part: 'GY-521 기울기 센서 모듈', pins: '1 VCC(+5V1) · 2 GND · 3 SCL(A5) · 4 SDA(A4) · 5~8 미연결(XDA·XCL·AD0·INT)',
+      warn: '모듈 방향이 균형 각도 기준이므로 고정 후 캘리브레이션(웹의 캘리브레이션 상태 확인)' },
+    { n: 'Bluetooth (4핀)', part: 'HC-05 블루투스 모듈', pins: '1 +5V1 · 2 GND · 3 RXD(나노 D0) · 4 TXD(나노 D1)',
+      warn: '모듈의 TXD → 3번, RXD → 4번이 되도록 꽂는다(모듈마다 핀 순서가 다르니 인쇄 확인). 업로드 전에는 뽑는다' },
+    { n: 'DC1 (DC005 잭) / CN1 (2핀)', part: '배터리 입력', pins: 'CN1: 1 +, 2 GND (DC 잭과 병렬)', warn: '+/− 반대로 꽂으면 보호 회로가 없어 부품이 손상될 수 있다' },
+    { n: 'U3 (3핀 슬라이드 스위치)', part: '전원 스위치', pins: '배터리 → VIN 연결/차단', warn: '' },
+  ];
+
+  var POWER = [
+    { a: 'VIN (배터리)', b: 'DC005 잭·CN1 → 스위치 U3', c: '플라이휠 모터 전원(FlyWheel 8번), 5V 강압 회로 입력, 나노 VIN(15번) 입력' },
+    { a: '+5V (서보·엔코더)', b: 'TPS562201 강압 컨버터(U2), L1 4.7µH, R4 110k / R5 20k', c: '출력 = 0.768 × (1 + 110/20) ≈ 5.0V. Servo1·Servo2·FlyWheel 3번(+5V)에 공급. 입력 4.5~17V' },
+    { a: '+5V1 (센서·통신)', b: '나노 5V 핀(12번)', c: '나노 자체 레귤레이터 출력. MPU6050·블루투스 모듈에 공급' },
+    { a: '배터리 감시', b: 'R2 33k(위) / R1 22k(아래), C2 100nF → A0', c: '분배비 22/55 = 0.4. 2S(8.4V)·3S(12.6V) 리튬 배터리 측정 가능(3S 만충은 측정 한계 12.5V 근처)' },
+  ];
+
+  var WARN = [
+    '<b>배터리 전압 핀이 다르다:</b> PCB는 배터리 분배 전압을 <b>A0</b>에 연결했지만, 원본 코드(01.Arduino Code)는 <b>A7</b>을 읽는다. 현재 펌웨어(03.Firmware)는 배터리 전압을 읽지 않는다. 전압 표시를 넣으려면 <span class="mono">VBAT</span>를 A0으로 바꾼다.',
+    '<b>D0/D1 공유:</b> 블루투스가 USB 시리얼과 같은 핀을 쓴다. 펌웨어 업로드·USB 연결 시험 때는 블루투스 모듈을 뽑는다.',
+    '<b>전원 순서:</b> 서보와 플라이휠은 강압 회로의 +5V, 센서와 블루투스는 나노의 5V를 쓴다. USB만 꽂으면 서보·모터는 돌지 않는다(배터리 스위치 ON 필요).',
+    '<b>D10:</b> 펌웨어에 예전 DC 모터용 PWM_2(D10)·DIR_2(D5) 정의가 남아 있지만 이 PCB에서는 D10이 360° 서보 신호다.',
+  ];
+
+  // 요소가 없으면(QA 스텁 DOM 등) 건너뛴다
+  function setPinHtml(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+  function esc(x) { return String(x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // 나노 윗면(USB 왼쪽). 회로도 U1의 실제 핀 배열: 위 줄 1~15, 아래 줄 30~16
+  var TOP = ['D13', '3V3', 'REF', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', '5V', 'RST', 'GND', 'VIN'];
+  var BOT = ['D12', 'D11', 'D10', 'D9', 'D8', 'D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'GND', 'RST', 'D0', 'D1'];
+  var BOT_LABEL = { D0: 'RX0', D1: 'TX1' };
+
+  var users = {};
+  PINMAP.forEach(function (e) { e.pins.forEach(function (p) { users[p.p] = { e: e, p: p }; }); });
+
+  function box(key, label, x, y, below) {
+    var u = users[key];
+    var fill = u ? u.e.color : '#0d1118';
+    var title = u ? u.e.func + ' ' + u.p.t : (key === '5V' ? '+5V1 출력(MPU6050·블루투스)' : key === 'VIN' ? '배터리 VIN 입력' : key === 'GND' ? 'GND' : '미사용');
+    var ty = below ? y + 36 : y - 9;
+    return '<g><title>' + esc(label) + ': ' + esc(title) + '</title>'
+      + '<rect x="' + x + '" y="' + y + '" width="24" height="24" rx="3" fill="' + fill + '" stroke="' + (u ? '#fff' : '#3a4a5c') + '" stroke-width="1.2"/>'
+      + '<circle cx="' + (x + 12) + '" cy="' + (y + 12) + '" r="4" fill="#000" opacity=".55"/>'
+      + '<text x="' + (x + 12) + '" y="' + ty + '" text-anchor="middle" font-size="10" fill="' + (u ? '#e8eaf6' : '#7a8aa0') + '" font-family="Consolas,monospace">' + esc(label) + '</text></g>';
+  }
+  var svg = '<rect x="70" y="40" width="570" height="170" rx="12" fill="#123a5a" stroke="#2a5d86"/>'
+    + '<rect x="20" y="100" width="64" height="50" rx="5" fill="#9aa3ad"/>'
+    + '<text x="52" y="130" text-anchor="middle" font-size="11" fill="#222" font-family="Segoe UI,sans-serif">USB</text>'
+    + '<text x="365" y="122" text-anchor="middle" fill="#7fb2d9" font-size="18" font-weight="700" font-family="Segoe UI,sans-serif">ARDUINO NANO + 바이크 PCB</text>'
+    + '<text x="365" y="142" text-anchor="middle" fill="#5d8db5" font-size="11" font-family="Segoe UI,sans-serif">사용 중인 핀은 색으로 표시 · 핀에 마우스를 올리면 용도</text>';
+  TOP.forEach(function (k, i) { svg += box(k, k, 120 + i * 33, 54, false); });
+  BOT.forEach(function (k, i) { svg += box(k, BOT_LABEL[k] || k, 120 + i * 33, 172, true); });
+  setPinHtml('nanoSvg', svg);
+
+  setPinHtml('pinLegend', PINMAP.map(function (e) {
+    return '<span><span class="swatch" style="background:' + e.color + '"></span>' + esc(e.func) + '</span>';
+  }).join(''));
+  setPinHtml('pinBody', PINMAP.map(function (e) {
+    return e.pins.map(function (p, i) {
+      return '<tr>' + (i === 0 ? '<td rowspan="' + e.pins.length + '"><span class="swatch" style="background:' + e.color + '"></span>' + esc(e.func) + '</td>' : '')
+        + '<td>' + esc(p.t) + '</td><td class="pn">' + p.p + '</td><td>' + esc(p.c) + '</td><td class="muted">' + esc(p.note || '') + '</td></tr>';
+    }).join('');
+  }).join(''));
+  setPinHtml('connBody', CONNECTORS.map(function (c) {
+    return '<tr><td class="pn">' + esc(c.n) + '</td><td>' + esc(c.part) + '</td><td>' + esc(c.pins) + '</td><td class="muted">' + esc(c.warn) + '</td></tr>';
+  }).join(''));
+  setPinHtml('powerBody', POWER.map(function (r) {
+    return '<tr><td class="pn">' + esc(r.a) + '</td><td>' + esc(r.b) + '</td><td class="muted">' + esc(r.c) + '</td></tr>';
+  }).join(''));
+  setPinHtml('pinWarn', WARN.map(function (w) { return '<li>' + w + '</li>'; }).join(''));
 })();
 </script>
 </body>

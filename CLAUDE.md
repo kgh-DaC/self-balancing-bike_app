@@ -10,3 +10,4 @@
 | 2026-10-17 | Harness v2로 처음 구성 | 전체 | - |
 | 2026-10-18 | 03.Firmware 대응: 시리얼 보드레이트 선택(기본 9600), 'J x y' 수신 확인 표시, failsafe 안내 | web/index.html, bike-protocol, qa_test.js | 펌웨어가 9600/에코/failsafe로 바뀜 |
 | 2026-11-09 | 연결 직후 캘리브레이션 상태 요청(STX 'S' ETX) 전송, 펌웨어 'S' 응답 추가 | web/index.html, remote.ino, qa_test.js | 연결 시 캘리브레이션 여부를 바로 표시 |
+| 2026-11-26 | 웹 하단에 '핀 연결(아두이노 나노 + 제작 PCB)' 카드: 나노 핀 그림, 기능별 핀↔PCB 커넥터, 커넥터 핀 순서, 전원 회로, 펌웨어↔PCB 차이(배터리 A0/A7, D10=360° 서보, D0/D1 공유). 근거 PCB 회로도 SCH.pdf V1.0 | web/index.html | 사용자 요청(통합 허브 세션), 보드 Nano 확인 |
