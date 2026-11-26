@@ -196,9 +196,10 @@
     </section>
   </div>
 
-  <!-- 핀 연결: 아두이노 나노 + 제작 PCB (근거: 03.Firmware/self_balancing_bike.ino 5-15·85-88행, PCB 회로도 SCH.pdf V1.0 '3D打印平衡车-BlanceBike') -->
+  <!-- 핀 연결: 아두이노 나노 + 제작 PCB (근거: 03.Firmware/self_balancing_bike.ino 5-15·85-88행, 제작 PCB 설계 자료 self-balancing-bike_pcb) -->
   <section class="card pin-card" id="cardPins" aria-labelledby="hPins">
-    <h2 id="hPins">핀 연결 (아두이노 나노 + 제작 PCB)</h2>
+    <h2 id="hPins">핀 연결 (아두이노 나노 + 제작 PCB BlanceBike)</h2>
+    <div class="muted" style="margin-bottom:6px">근거: 제작 PCB 설계 자료(self-balancing-bike_pcb, 2026-10-12 실보드 확정·FlyWheel 도통 시험)와 펌웨어 03.Firmware</div>
     <svg id="nanoSvg" viewBox="0 0 660 250" role="img" aria-label="아두이노 나노 핀 배치와 사용 중인 핀"></svg>
     <div class="pin-legend" id="pinLegend"></div>
 
@@ -1105,38 +1106,40 @@
   requestAnimationFrame(draw);
 })();
 
-// 핀 연결 카드. 펌웨어(03.Firmware)와 PCB 회로도(SCH.pdf V1.0)를 함께 근거로 한다.
+// 핀 연결 카드. 펌웨어(03.Firmware)와 제작 PCB 설계 자료(self-balancing-bike_pcb)를 함께 근거로 한다.
 // 핀을 바꾸면 self_balancing_bike.ino의 #define과 이 표를 함께 고친다.
 (function () {
+  // 근거: 제작 PCB 설계 자료 self-balancing-bike_pcb (_workspace/02_schematic_spec.md 4·5절, 07_flywheel_continuity_test.md,
+  //       PCB_연결.jpg·nidec모터 결선.jpg, 2026-10-12 실보드 확정), 펌웨어 03.Firmware/self_balancing_bike.ino 5-15·85-88행.
   var PINMAP = [
     { func: '플라이휠 모터 (균형)', color: '#4f8ef7', pins: [
-      { p: 'D9', t: 'PWMF — 속도 PWM', c: 'FlyWheel 5번', note: '펌웨어 PWM_1. Timer1 PWM 7.8kHz, 출력 = 255 − |속도|(값이 작을수록 빠름)' },
-      { p: 'D7', t: 'DIRF — 회전 방향', c: 'FlyWheel 4번', note: '펌웨어 DIR_1' },
-      { p: 'D8', t: 'EN — 브레이크/구동 허용', c: 'FlyWheel 6번', note: '펌웨어 BRAKE. HIGH = 구동(세워져 있고 캘리브레이션 완료), LOW = 정지(넘어짐·대기)' },
+      { p: 'D9', t: 'PWMF — 속도 PWM', c: 'FlyWheel 4번', note: '펌웨어 PWM_1. Timer1 PWM 7.8kHz, 출력 = 255 − |속도|(값이 작을수록 빠름)' },
+      { p: 'D7', t: 'DIRF — 회전 방향', c: 'FlyWheel 5번', note: '펌웨어 DIR_1' },
+      { p: 'D8', t: 'EN — 브레이크/구동 허용', c: 'FlyWheel 3번', note: '펌웨어 BRAKE. HIGH = 구동(세워져 있고 캘리브레이션 완료), LOW = 정지(넘어짐·대기)' },
     ] },
     { func: '플라이휠 엔코더', color: '#22b8cf', pins: [
-      { p: 'D2', t: 'A상', c: 'FlyWheel 2번', note: '외부 인터럽트 0 (CHANGE)' },
-      { p: 'D3', t: 'B상', c: 'FlyWheel 1번', note: '외부 인터럽트 1 (CHANGE)' },
+      { p: 'D3', t: 'A상', c: 'FlyWheel 7번', note: '외부 인터럽트 1 (CHANGE)' },
+      { p: 'D2', t: 'B상', c: 'FlyWheel 8번', note: '외부 인터럽트 0 (CHANGE)' },
     ] },
     { func: '조향 서보 (앞바퀴)', color: '#40c057', pins: [
-      { p: 'A3', t: 'SER — 서보 신호', c: 'Servo1 1번', note: 'ServoTimer2, 중앙 1500µs, ±350µs' },
+      { p: 'A3', t: 'SER — 서보 신호', c: 'Servo1 1번 (실크 S)', note: 'ServoTimer2, 중앙 1500µs, ±350µs' },
     ] },
     { func: '구동 서보 (뒷바퀴, 360°)', color: '#94d82d', pins: [
       { p: 'D10', t: 'PWMM — 서보 신호', c: 'Servo2 1번', note: '360° 연속 회전 서보. 1500µs 정지, 전진·후진은 1500±속도×7µs' },
     ] },
     { func: '기울기 센서 MPU6050', color: '#fd7e14', pins: [
-      { p: 'A4', t: 'SDA', c: 'MPU6050 4번', note: 'I2C 주소 0x68' },
+      { p: 'A4', t: 'SDA', c: 'MPU6050 4번', note: 'I2C 주소 0x68 (GY-521)' },
       { p: 'A5', t: 'SCL', c: 'MPU6050 3번', note: '' },
     ] },
     { func: '블루투스 HC-05', color: '#9775fa', pins: [
-      { p: 'D0', t: 'RXD — 나노 수신', c: 'Bluetooth 3번', note: '하드웨어 Serial 9600bps. 모듈의 TXD가 여기로' },
-      { p: 'D1', t: 'TXD — 나노 송신', c: 'Bluetooth 4번', note: '모듈의 RXD가 여기로. USB와 같은 선 → 업로드할 때 모듈을 뺀다' },
+      { p: 'D0', t: 'RXD — 나노 수신', c: 'Bluetooth 3번 (실크 T)', note: '하드웨어 Serial 9600bps. 모듈 TX가 여기로' },
+      { p: 'D1', t: 'TXD — 나노 송신', c: 'Bluetooth 4번 (실크 R)', note: '모듈 RX가 여기로. USB와 같은 선 → 업로드할 때 모듈을 뺀다' },
     ] },
     { func: '부저', color: '#e64980', pins: [
-      { p: 'D12', t: 'BEEP', c: '(PCB 위 BUZZER1)', note: '1kΩ → S8050 트랜지스터로 구동' },
+      { p: 'D12', t: 'BEEP', c: '(보드 위 BUZZER1)', note: 'R6 1kΩ → Q1 S8050 → 5V 액티브 부저' },
     ] },
     { func: '배터리 전압', color: '#ffd43b', pins: [
-      { p: 'A0', t: 'AD1 — 전압 분배', c: '(PCB 위 R2·R1)', note: '33k/22k 분배: 배터리 전압 = A0 전압 × 2.5 (최대 12.5V)' },
+      { p: 'A0', t: 'AD1 — 전압 분배', c: '(보드 위 R2·R1)', note: '33k/22k 분배: 배터리 전압 = A0 전압 × 2.5 (측정 한계 12.5V)' },
     ] },
     { func: '미연결 신호', color: '#868e96', pins: [
       { p: 'D5', t: 'DIRM', c: '(커넥터 없음)', note: '펌웨어 DIR_2. 뒷바퀴가 360° 서보라 쓰이지 않음' },
@@ -1144,31 +1147,35 @@
   ];
 
   var CONNECTORS = [
-    { n: 'FlyWheel (8핀)', part: '플라이휠 모터(엔코더·드라이버 내장형 BLDC)',
-      pins: '1 B(엔코더 B, D3) · 2 A(엔코더 A, D2) · 3 +5V · 4 DIRF(D7) · 5 PWMF(D9) · 6 EN(D8) · 7 GND · 8 VIN(배터리)',
-      warn: '8번은 배터리 전압이 바로 나온다. 모터 케이블의 핀 순서를 PCB 1번 표시에 맞춰 꽂는다' },
-    { n: 'Servo1 (3핀)', part: '조향 서보(앞바퀴)', pins: '1 SER 신호(A3) · 2 +5V · 3 GND', warn: '서보 커넥터의 신호선(주황·노랑)을 1번에' },
-    { n: 'Servo2 (3핀)', part: '360° 서보(뒷바퀴 구동)', pins: '1 PWMM 신호(D10) · 2 +5V · 3 GND', warn: '일반 180° 서보가 아니라 연속 회전 서보를 단다' },
-    { n: 'MPU6050 (8핀)', part: 'GY-521 기울기 센서 모듈', pins: '1 VCC(+5V1) · 2 GND · 3 SCL(A5) · 4 SDA(A4) · 5~8 미연결(XDA·XCL·AD0·INT)',
-      warn: '모듈 방향이 균형 각도 기준이므로 고정 후 캘리브레이션(웹의 캘리브레이션 상태 확인)' },
-    { n: 'Bluetooth (4핀)', part: 'HC-05 블루투스 모듈', pins: '1 +5V1 · 2 GND · 3 RXD(나노 D0) · 4 TXD(나노 D1)',
-      warn: '모듈의 TXD → 3번, RXD → 4번이 되도록 꽂는다(모듈마다 핀 순서가 다르니 인쇄 확인). 업로드 전에는 뽑는다' },
-    { n: 'DC1 (DC005 잭) / CN1 (2핀)', part: '배터리 입력', pins: 'CN1: 1 +, 2 GND (DC 잭과 병렬)', warn: '+/− 반대로 꽂으면 보호 회로가 없어 부품이 손상될 수 있다' },
-    { n: 'U3 (3핀 슬라이드 스위치)', part: '전원 스위치', pins: '배터리 → VIN 연결/차단', warn: '' },
+    { n: 'FlyWheel (XH-8A 직립, 8핀)', part: 'Nidec 24H404H160 플라이휠 모터(드라이버·엔코더 내장 BLDC)',
+      pins: '1 VIN(약 12V, 나노 쪽 끝) · 2 GND · 3 EN(D8) · 4 PWMF(D9) · 5 DIRF(D7) · 6 +5V · 7 A(D3) · 8 B(D2, 보드 모서리 쪽 끝)',
+      warn: '원본 회로도(SCH.pdf)와 번호가 반대다(실물 도통 시험으로 확정). 케이블은 빨강 = 1번 VIN(나노 쪽), 갈색 = 8번 B 쪽으로 꽂는다(사진 기준 추정). 거꾸로 꽂으면 12V가 엔코더·5V에 걸려 나노와 서보가 손상되므로, 첫 전원 전에 멀티미터로 1번 패드와 스위치 가운데 단자(VIN)의 도통을 확인한다' },
+    { n: 'Servo1 (3핀 수헤더 직립)', part: '조향 서보(앞바퀴)', pins: '1 SER 신호(A3, 실크 S) · 2 +5V(실크 +) · 3 GND(실크 −)', warn: '서보 선 주황(신호)·빨강(+)·갈색(−)을 S·+·− 실크에 맞춘다' },
+    { n: 'Servo2 (3핀 수헤더 직립)', part: '360° 연속 회전 서보(뒷바퀴 구동)', pins: '1 PWMM 신호(D10) · 2 +5V · 3 GND', warn: '일반 180° 서보가 아니라 연속 회전 서보를 단다' },
+    { n: 'MPU6050 (1x8 암헤더)', part: 'GY-521 기울기 센서 모듈', pins: '1 VCC(+5V1) · 2 GND · 3 SCL(A5) · 4 SDA(A4) · 5~8 미연결(XDA·XCL·AD0·INT)',
+      warn: '모듈 핀 이름(VCC·GND·SCL·SDA…)이 소켓 1번부터 맞게 꽂는다. 모듈 방향이 균형 각도 기준이므로 고정 후 캘리브레이션' },
+    { n: 'Bluetooth (1x4 암헤더 직립)', part: 'HC-05 블루투스 모듈', pins: '1 +5V1(실크 V) · 2 GND(실크 G) · 3 나노 RX(실크 T = 모듈 TX) · 4 나노 TX(실크 R = 모듈 RX)',
+      warn: '모듈 핀 이름과 실크 V·G·T·R을 맞춰 위에서 수직으로 꽂는다. 업로드 전에는 뽑는다' },
+    { n: 'Nano 소켓 (1x15 암헤더 ×2)', part: 'Arduino Nano', pins: '열 간격 15.24mm. USB 방향은 보드 실크(D13·3V3 … / D12·D11 …)에 맞춘다', warn: '' },
+    { n: 'CN1 (5.08mm 2핀 단자대)', part: '배터리 입력', pins: '1 +(실크 +) · 2 −(실크 −)', warn: '역접속 보호가 없다. +/−를 반대로 물리면 벅·나노·서보가 손상된다' },
+    { n: 'DC1 (DC005 5.5×2.1 잭)', part: '충전기 입력(CN1과 병렬)', pins: '중심 핀 + · 바깥 슬리브 GND', warn: '보드에 충전 회로가 없다. 배터리용 CC/CV(밸런스) 충전기만 꽂는다. 일반 12V 어댑터를 꽂으면 배터리에 바로 걸린다' },
+    { n: 'U3 (SS-12D06 슬라이드 스위치)', part: '전원 스위치', pins: '1 배터리(스위치 전단) · 2 VIN(가운데, 스위치 후단) · 3 미사용', warn: '켜고 끌 때는 플라이휠이 멈춘 상태에서 조작한다(DC 아크로 접점 손상)' },
   ];
 
   var POWER = [
-    { a: 'VIN (배터리)', b: 'DC005 잭·CN1 → 스위치 U3', c: '플라이휠 모터 전원(FlyWheel 8번), 5V 강압 회로 입력, 나노 VIN(15번) 입력' },
-    { a: '+5V (서보·엔코더)', b: 'TPS562201 강압 컨버터(U2), L1 4.7µH, R4 110k / R5 20k', c: '출력 = 0.768 × (1 + 110/20) ≈ 5.0V. Servo1·Servo2·FlyWheel 3번(+5V)에 공급. 입력 4.5~17V' },
-    { a: '+5V1 (센서·통신)', b: '나노 5V 핀(12번)', c: '나노 자체 레귤레이터 출력. MPU6050·블루투스 모듈에 공급' },
-    { a: '배터리 감시', b: 'R2 33k(위) / R1 22k(아래), C2 100nF → A0', c: '분배비 22/55 = 0.4. 2S(8.4V)·3S(12.6V) 리튬 배터리 측정 가능(3S 만충은 측정 한계 12.5V 근처)' },
+    { a: 'VIN (배터리)', b: '3S 리튬 약 12V(만충 12.6V) → CN1/DC1 → 스위치 U3', c: '플라이휠 모터 전원(FlyWheel 1번), 5V 강압 회로 입력, 나노 VIN 핀 입력' },
+    { a: '+5V (서보·모터 로직·부저)', b: 'TPS563201 강압 컨버터(U2, 3A), L1 4.7µH, R4 110k / R5 20k, C7 220µF', c: '출력 = 0.768 × (1 + 110/20) ≈ 5.0V. Servo1·Servo2·FlyWheel 6번·부저에 공급. 서보 두 개 스톨까지 약 2.5A로 정격 안' },
+    { a: '+5V1 (센서·통신)', b: '나노 5V 핀(나노 내부 레귤레이터)', c: 'MPU6050·블루투스에 공급(약 35~80mA). 12V에서 선형 강하라 나노 레귤레이터가 따뜻해진다. +5V와 연결하지 않는다' },
+    { a: '배터리 감시', b: 'R2 33k(위) / R1 22k(아래), C2 100nF → A0', c: '분배비 22/55 = 0.4. 펌웨어 bat_divider(볼트당 ADC 값) ≈ 1023 × 0.4 ÷ 5 ≈ 82, 실측 보정' },
+    { a: '보호 회로', b: '없음(원본 회로 그대로)', c: '역접속 다이오드·퓨즈·TVS 없음. 배터리 극성과 FlyWheel 케이블 방향을 꼭 확인한다' },
   ];
 
   var WARN = [
-    '<b>배터리 전압 핀이 다르다:</b> PCB는 배터리 분배 전압을 <b>A0</b>에 연결했지만, 원본 코드(01.Arduino Code)는 <b>A7</b>을 읽는다. 현재 펌웨어(03.Firmware)는 배터리 전압을 읽지 않는다. 전압 표시를 넣으려면 <span class="mono">VBAT</span>를 A0으로 바꾼다.',
+    '<b>FlyWheel 커넥터 방향:</b> 제작 PCB는 1번이 VIN(나노 쪽), 8번이 B다. 원본 회로도(SCH.pdf)의 1 B … 8 VIN과 반대이므로 원본 자료를 보고 꽂지 않는다.',
+    '<b>배터리 전압 핀:</b> PCB는 A0에 연결했지만 원본 코드는 A7을 읽는다. 현재 펌웨어(03.Firmware)는 배터리 전압을 읽지 않는다. 전압 표시를 넣으려면 <span class="mono">VBAT</span>를 A0, <span class="mono">bat_divider</span>를 약 82로 바꾼다.',
     '<b>D0/D1 공유:</b> 블루투스가 USB 시리얼과 같은 핀을 쓴다. 펌웨어 업로드·USB 연결 시험 때는 블루투스 모듈을 뽑는다.',
-    '<b>전원 순서:</b> 서보와 플라이휠은 강압 회로의 +5V, 센서와 블루투스는 나노의 5V를 쓴다. USB만 꽂으면 서보·모터는 돌지 않는다(배터리 스위치 ON 필요).',
-    '<b>D10:</b> 펌웨어에 예전 DC 모터용 PWM_2(D10)·DIR_2(D5) 정의가 남아 있지만 이 PCB에서는 D10이 360° 서보 신호다.',
+    '<b>전원:</b> 서보·플라이휠 로직은 강압 회로의 +5V, 센서·블루투스는 나노의 5V를 쓴다. USB만 꽂으면 서보·모터는 돌지 않는다(배터리 스위치 ON 필요).',
+    '<b>D10:</b> 펌웨어에 예전 DC 모터용 PWM_2(D10)·DIR_2(D5) 정의가 남아 있지만 이 PCB에서 D10은 360° 서보 신호이고 D5는 연결이 없다.',
   ];
 
   // 요소가 없으면(QA 스텁 DOM 등) 건너뛴다
