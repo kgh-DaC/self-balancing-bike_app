@@ -42,7 +42,7 @@ description: 밸런싱 바이크(remrc Self-Balancing-Bike 기반)의 블루투�
 
 ## 브라우저 연결
 - Web Bluetooth: **BLE만** 지원. 일반 UART 서비스 `0000ffe0-...` / 특성 `0000ffe1-...`(HM-10 계열), Nordic UART `6e400001-b5a3-f393-e0a9-e50e24dcca9e`(TX 쓰기 `...0002...`).
-- 클래식 SPP(HC-05/06): Windows에서 먼저 페어링 → 가상 COM 포트 → Web Serial(`navigator.serial`, 115200)로 연결.
+- 클래식 SPP(HC-05/06): 먼저 페어링 → Web Serial(`navigator.serial`, 현재 펌웨어 9600)로 연결. `requestPort`에 `allowedBluetoothServiceClassIds: [SPP 00001101-…]`를 넣어 PC(가상 COM 포트)와 안드로이드 Chrome 137+(갤럭시 탭, 페어링한 HC-05 직접 선택) 모두 지원한다(2026-11-27). 안드로이드는 disconnect 이벤트가 없어 끊김은 수신 스트림 종료로 감지한다.
 - 둘 다 HTTPS 또는 localhost 필요, Chrome/Edge 데스크톱·안드로이드 지원(iOS Safari 미지원).
 
 ## 분석으로 확인된 추가 사실

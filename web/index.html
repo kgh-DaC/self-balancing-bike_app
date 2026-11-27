@@ -136,7 +136,8 @@
     <div class="note" id="supportNote"></div>
     <div class="note">
       BLE: HM-10 계열(FFE0/FFE1)과 Nordic UART 서비스를 자동 탐색합니다.
-      클래식 블루투스(HC-05/06): Windows 설정에서 먼저 페어링하면 생기는 COM 포트를 "시리얼(COM) 연결"로 선택하세요.
+      클래식 블루투스(HC-05/06): 기기 설정에서 먼저 페어링(PIN 1234 또는 0000)한 뒤 "시리얼(COM) 연결"을 누르세요.
+      PC는 페어링 후 생긴 COM 포트를, 안드로이드(갤럭시 탭 등, Chrome 137 이상)는 목록에 나오는 HC-05 이름(예: BIKE)을 고릅니다.
     </div>
     <div class="row" style="margin-top:8px">
       <label class="muted" for="baud">시리얼 보드레이트(펌웨어 <code>Serial.begin()</code>과 같게):</label>
@@ -505,7 +506,8 @@
   }
   SerialTransport.prototype.connect = async function () {
     var self = this;
-    this.port = await navigator.serial.requestPort();
+    // SPP(RFCOMM)를 허용해야 안드로이드 Chrome(137+) 목록에 페어링한 클래식 HC-05가 나온다(데스크톱은 COM 포트와 함께 표시).
+    this.port = await navigator.serial.requestPort({ allowedBluetoothServiceClassIds: ['00001101-0000-1000-8000-00805f9b34fb'] });
     var opened = false;
     try {
       var baud = parseInt($('baud').value, 10) || 9600;   // 화면에서 고른 보드레이트
@@ -516,7 +518,7 @@
       this.port.addEventListener('disconnect', this._onDisc);
       var info = {};
       try { info = this.port.getInfo() || {}; } catch (e) {}
-      this.name = '시리얼 ' + baud + (info.usbVendorId ? ' (USB ' + info.usbVendorId.toString(16) + ':' + (info.usbProductId || 0).toString(16) + ')' : '');
+      this.name = '시리얼 ' + baud + (info.usbVendorId ? ' (USB ' + info.usbVendorId.toString(16) + ':' + (info.usbProductId || 0).toString(16) + ')' : info.bluetoothServiceClassId ? ' (블루투스 SPP)' : '');
       if (this._closedFired) throw new Error('연결 중 끊어졌습니다.');
     } catch (e) {
       // open 이후 단계에서 실패하면 포트를 닫아 재연결 시 "already open"을 막음
@@ -1116,7 +1118,7 @@
     var msgs = [];
     if (!support.secure) msgs.push('HTTPS 또는 localhost에서 열어야 Bluetooth/시리얼을 사용할 수 있습니다(현재 보안 컨텍스트 아님).');
     if (!navigator.bluetooth) msgs.push('이 브라우저는 Web Bluetooth를 지원하지 않습니다(Chrome/Edge 데스크톱, 안드로이드 Chrome 권장. iOS Safari 미지원).');
-    if (!navigator.serial) msgs.push('이 브라우저는 Web Serial을 지원하지 않습니다(Chrome/Edge 데스크톱 필요. 모바일 미지원).');
+    if (!navigator.serial) msgs.push('이 브라우저는 Web Serial을 지원하지 않습니다(Chrome/Edge 데스크톱, 또는 안드로이드 Chrome 137 이상에서 블루투스 HC-05만 가능. iOS 미지원).');
     var n = $('supportNote');
     if (msgs.length) { n.textContent = msgs.join(' '); n.classList.add('err'); }
     else n.textContent = 'Web Bluetooth와 Web Serial을 모두 사용할 수 있습니다.';
