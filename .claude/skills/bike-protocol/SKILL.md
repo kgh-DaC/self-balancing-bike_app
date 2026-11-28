@@ -14,7 +14,7 @@ description: 밸런싱 바이크(remrc Self-Balancing-Bike 기반)의 블루투�
 - 파서: ETX로 끝난 프레임(`complete`)만 적용하고 `cmd[7]` 밖에는 쓰지 않는다(01의 범위 밖 쓰기 버그 수정).
 
 ## 링크
-- UART 115200 baud (`Serial.begin(115200)`). 블루투스 모듈은 이 보레이트의 투명 시리얼 브리지여야 한다. 모듈 종류(BLE/클래식)는 코드로 확인되지 않으므로 사용자에게 확인한다.
+- UART **9600** baud (현재 펌웨어 `03.Firmware/self_balancing_bike/self_balancing_bike.ino`의 `Serial.begin(9600)`, 원본 01은 115200). 블루투스 모듈은 이 보레이트의 투명 시리얼 브리지여야 한다. 현재 쓰는 모듈은 클래식 HC-05(ZS-040)다(사용자 확인).
 - STX = 0x02, ETX = 0x03.
 
 ## 앱 → 바이크
@@ -46,4 +46,4 @@ description: 밸런싱 바이크(remrc Self-Balancing-Bike 기반)의 블루투�
 - 둘 다 HTTPS 또는 localhost 필요, Chrome/Edge 데스크톱·안드로이드 지원(iOS Safari 미지원).
 
 ## 분석으로 확인된 추가 사실
-자세한 내용은 `_workspace/01_analyst_protocol.md` 참고. 버튼 A~D는 현재 펌웨어에서 효과 없음, 통신 두절 failsafe 없음(앱이 중립을 보내야 함), 현재 빌드는 Tuning()이 주석 처리되어 웹으로 캘리브레이션 불가, 모듈 종류와 UUID는 미검증.
+자세한 내용은 `_workspace/01_analyst_protocol.md` 참고. 버튼 A~D는 현재 펌웨어에서 효과 없음, 통신 두절 failsafe는 03.Firmware에 있음(`remote.ino` `CMD_TIMEOUT = 500`ms — 원본 01에는 없었음, 앱은 그래도 해제 시 중립을 보낸다), 현재 빌드는 Tuning()이 주석 처리되어 웹으로 캘리브레이션 불가, BLE UUID는 미검증(현재 모듈은 HC-05라 해당 없음).

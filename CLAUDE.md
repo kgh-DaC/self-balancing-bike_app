@@ -15,3 +15,4 @@
 | 2026-11-26 | 핀 카드에 제작 PCB 윗면 그림 추가(나노 그림 옆, 03_layout_plan 2.1절 핀 좌표로 실척 배치, 커넥터 핀 번호·신호·1번 핀 표시) | web/index.html | 사용자 요청 |
 | 2026-11-26 | 3D 바이크 카드(web/twin.js + three.js 로컬 묶음 web/vendor, window.bikeState로 조향·속도·연결·캘리브레이션 전달), 별도 나노 그림 삭제, qa_test는 외부 src 스크립트를 인라인 개수에서 제외 | web/index.html, web/twin.js, qa_test.js | 사용자 요청 |
 | 2026-11-27 | 3D 창 축소(높이 360→300px), 주행 줄 배치: 3D(왼쪽)·조이스틱(오른쪽)·설정(넓은 화면 맨 오른쪽, 1100px 이하 아래) | web/index.html | 사용자 요청 |
+| 2026-11-28 | bike-protocol 낡은 서술 수정: 링크 보드레이트 115200→9600(현재 펌웨어), 통신 두절 failsafe 없음→있음(remote.ino CMD_TIMEOUT 500ms), 모듈은 HC-05 | .claude/skills/bike-protocol | 통합 허브 인수 문서의 미해결 항목 |
